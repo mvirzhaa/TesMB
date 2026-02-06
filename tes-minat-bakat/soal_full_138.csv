@@ -1,0 +1,138 @@
+type,text_main,category_main,text_pair,category_pair
+scale,Saya suka memperbaiki peralatan elektronik yang rusak,Realistic,,
+star,Seberapa tertarik kamu merakit robot atau mesin?,Realistic,,
+boolean,Apakah kamu suka bekerja di luar ruangan (Outdoor)?,Realistic,,
+scale,Saya senang merakit perabotan atau barang kerajinan kayu,Realistic,,
+choice,Bekerja di bengkel,Realistic,Bekerja di rumah sakit,Social
+scale,Saya tertarik mengoperasikan alat berat atau mesin industri,Realistic,,
+boolean,Apakah kamu bisa menggunakan alat pertukangan (palu/bor)?,Realistic,,
+scale,Saya suka kegiatan fisik seperti berkemah atau mendaki gunung,Realistic,,
+choice,Memancing,Realistic,Melukis,Artistic
+star,Rating ketertarikanmu menjadi seorang Pilot?,Realistic,,
+scale,Saya suka merawat tanaman atau berkebun,Realistic,,
+boolean,Apakah kamu tidak keberatan jika tanganmu kotor saat bekerja?,Realistic,,
+scale,Saya suka olahraga fisik atau atletik,Realistic,,
+choice,Toolbox perkakas,Realistic,Buku agenda,Conventional
+scale,Saya suka membongkar pasang komponen komputer,Realistic,,
+star,Seberapa suka kamu pada pelajaran praktik teknik?,Realistic,,
+boolean,Apakah kamu lebih suka benda nyata daripada ide abstrak?,Realistic,,
+scale,Saya memecahkan teka-teki logika atau matematika sulit,Investigative,,
+star,Seberapa tertarik kamu memecahkan kode rahasia?,Investigative,,
+boolean,Apakah kamu suka membaca buku ensiklopedia atau sains?,Investigative,,
+scale,Saya suka membaca artikel tentang sains dan penemuan terbaru,Investigative,,
+choice,Melakukan eksperimen lab,Investigative,Mengajar anak TK,Social
+scale,Saya ingin tahu bagaimana cara kerja alam semesta,Investigative,,
+boolean,Apakah kamu sering bertanya "kenapa" dan "bagaimana"?,Investigative,,
+scale,Saya suka menganalisis data grafik dan tren statistik,Investigative,,
+choice,Dokumenter Alam Semesta,Investigative,Drama Musikal,Artistic
+star,Berikan rating pada pelajaran Matematika/Fisika,Investigative,,
+scale,Saya senang melakukan eksperimen di laboratorium,Investigative,,
+boolean,Apakah kamu lebih percaya data daripada perasaan?,Investigative,,
+scale,Saya suka bermain catur atau game strategi,Investigative,,
+choice,Detektif Swasta,Investigative,Sales Mobil,Enterprising
+scale,Saya suka mendiagnosa masalah pada sistem komputer,Investigative,,
+star,Seberapa suka kamu meneliti penyebab penyakit?,Investigative,,
+boolean,Apakah kamu suka memecahkan masalah yang rumit?,Investigative,,
+scale,Saya suka melukis menggambar atau membuat sketsa,Artistic,,
+star,Seberapa tertarik kamu mendesain logo atau poster?,Artistic,,
+boolean,Apakah kamu bisa memainkan alat musik?,Artistic,,
+scale,Saya bisa memainkan alat musik atau bernyanyi,Artistic,,
+choice,Menjadi aktor film,Artistic,Menjadi mekanik,Realistic
+scale,Saya suka menulis cerita fiksi puisi atau lirik lagu,Artistic,,
+boolean,Apakah kamu orang yang imajinatif dan sering melamun?,Artistic,,
+scale,Saya tertarik dengan desain grafis atau fotografi,Artistic,,
+choice,Galeri Seni,Artistic,Pesta Reuni,Social
+star,Berikan rating pada kegiatan fotografi/videografi,Artistic,,
+scale,Saya suka mendekorasi ruangan agar terlihat estetis,Artistic,,
+boolean,Apakah kamu benci aturan yang terlalu kaku?,Artistic,,
+scale,Saya suka menonton pertunjukan teater atau film indie,Artistic,,
+choice,Arsitek,Artistic,Akuntan,Conventional
+scale,Saya lebih suka lingkungan kerja yang bebas,Artistic,,
+star,Seberapa suka kamu mengekspresikan diri lewat fashion?,Artistic,,
+boolean,Apakah kamu suka menciptakan sesuatu yang orisinil?,Artistic,,
+scale,Saya suka mengajar atau melatih orang lain,Social,,
+star,Seberapa suka kamu mendengarkan curhat teman?,Social,,
+boolean,Apakah kamu aktif di kegiatan amal/sosial?,Social,,
+scale,Saya senang mendengarkan curhat teman dan memberi saran,Social,,
+choice,Menjadi Perawat,Social,Menjadi Supir Truk,Realistic
+scale,Saya aktif dalam kegiatan sukarelawan atau amal,Social,,
+boolean,Apakah kamu mudah mencari teman baru?,Social,,
+scale,Saya suka bekerja dalam tim daripada sendirian,Social,,
+choice,Kerja Bakti,Social,Main Game Sendiri,Investigative
+star,Berikan rating ketertarikanmu pada psikologi manusia,Social,,
+scale,Saya peduli pada kesejahteraan orang lain,Social,,
+boolean,Apakah orang sering minta saran padamu?,Social,,
+scale,Saya suka merawat orang sakit atau lansia,Social,,
+choice,Guru SD,Social,CEO Startup,Enterprising
+scale,Saya suka mendamaikan teman yang sedang bertengkar,Social,,
+star,Seberapa sabar kamu menghadapi orang yang emosi?,Social,,
+scale,Saya suka memimpin kelompok atau organisasi,Enterprising,,
+star,Seberapa tertarik kamu menjadi pemimpin kelompok?,Enterprising,,
+boolean,Apakah kamu berani mengambil risiko bisnis?,Enterprising,,
+scale,Saya berani mengambil risiko demi keuntungan bisnis,Enterprising,,
+choice,Jualan Produk,Enterprising,Analisa Data,Investigative
+scale,Saya suka berbicara di depan umum (public speaking),Enterprising,,
+boolean,Apakah kamu orang yang ambisius mengejar target?,Enterprising,,
+scale,Saya tertarik pada dunia marketing dan periklanan,Enterprising,,
+choice,Ketua Panitia,Enterprising,Sekretaris,Conventional
+star,Berikan rating pada dunia marketing dan iklan,Enterprising,,
+scale,Saya suka bernegosiasi atau tawar-menawar harga,Enterprising,,
+boolean,Apakah kamu ingin punya bisnis sendiri?,Enterprising,,
+scale,Saya bercita-cita memiliki bisnis atau startup sendiri,Enterprising,,
+choice,Biografi Pengusaha,Enterprising,Novel Romantis,Artistic
+scale,Saya suka meyakinkan orang lain untuk mengikuti ide saya,Enterprising,,
+star,Rating ketertarikanmu pada dunia politik/debat?,Enterprising,,
+scale,Saya suka menyusun jadwal kegiatan yang terperinci,Conventional,,
+star,Seberapa suka kamu menyusun jadwal harian?,Conventional,,
+boolean,Apakah kamu orang yang sangat rapi dan teliti?,Conventional,,
+scale,Saya suka bekerja dengan angka dan data keuangan,Conventional,,
+choice,Kerja Admin Kantor,Conventional,Seniman Jalanan,Artistic
+scale,Saya orang yang sangat teliti pada detail kecil,Conventional,,
+boolean,Apakah kamu suka mengikuti aturan/SOP yang jelas?,Conventional,,
+scale,Saya suka mengarsipkan dokumen agar rapi,Conventional,,
+choice,Input Data,Conventional,Presentasi Produk,Enterprising
+star,Berikan rating ketertarikanmu pada urusan pajak/keuangan,Conventional,,
+scale,Saya lebih suka mengikuti prosedur yang sudah jelas,Conventional,,
+boolean,Apakah kamu selalu datang tepat waktu?,Conventional,,
+scale,Saya suka membuat daftar barang (inventory),Conventional,,
+choice,Pegawai Bank,Conventional,Petani,Realistic
+scale,Saya tidak suka perubahan rencana yang mendadak,Conventional,,
+star,Rating ketertarikanmu pada pekerjaan kasir?,Conventional,,
+boolean,Saya merasa tenang ketika semuanya teratur,Kepribadian_Conscientiousness,,
+scale,Saya adalah orang yang penuh energi,Kepribadian_Extraversion,,
+star,Seberapa mudah kamu merasa stres?,Kepribadian_Neuroticism,,
+choice,Saya menyapa banyak orang,Kepribadian_Extraversion,Saya diam di pojok,Kepribadian_Introversion
+scale,Saya selalu memikirkan perasaan orang lain,Kepribadian_Agreeableness,,
+boolean,Apakah kamu suka mencoba makanan/hal baru?,Kepribadian_Openness,,
+scale,Saya mengerjakan tugas segera (tidak menunda),Kepribadian_Conscientiousness,,
+choice,Terencana dan Rapi,Kepribadian_Conscientiousness,Santai dan Spontan,Kepribadian_Spontaneous
+star,Seberapa sering kamu merasa khawatir?,Kepribadian_Neuroticism,,
+scale,Saya memiliki imajinasi yang luas,Kepribadian_Openness,,
+boolean,Apakah kamu suka menjadi pusat perhatian?,Kepribadian_Extraversion,,
+scale,Saya mudah memaafkan orang lain,Kepribadian_Agreeableness,,
+choice,Saya mudah panik,Kepribadian_Neuroticism,Saya tetap tenang,Kepribadian_Stability
+star,Rating tingkat kedisiplinan diri kamu?,Kepribadian_Conscientiousness,,
+scale,Saya suka berdiskusi tentang ide-ide abstrak,Kepribadian_Openness,,
+boolean,Apakah kamu lebih suka menyendiri daripada keramaian?,Kepribadian_Introversion,,
+scale,Saya jarang merasa sedih atau tertekan,Kepribadian_Stability,,
+choice,Ramah dan terbuka,Kepribadian_Agreeableness,Hati-hati dan curiga,Kepribadian_Guarded
+star,Seberapa suka kamu pada seni dan keindahan?,Kepribadian_Openness,,
+scale,Saya bekerja keras untuk mencapai tujuan,Kepribadian_Conscientiousness,,
+boolean,Apakah kamu sering memulai percakapan duluan?,Kepribadian_Extraversion,,
+scale,Saya menghormati otoritas dan aturan,Kepribadian_Conscientiousness,,
+choice,Berubah-ubah mood,Kepribadian_Neuroticism,Stabil dan tenang,Kepribadian_Stability
+star,Rating kemampuan sosialmu?,Kepribadian_Extraversion,,
+scale,Saya tertarik pada sejarah dan budaya asing,Kepribadian_Openness,,
+boolean,Apakah kamu orang yang bisa diandalkan?,Kepribadian_Conscientiousness,,
+scale,Saya suka membuat orang lain merasa senang,Kepribadian_Agreeableness,,
+choice,Sangat penting,Kepribadian_Conscientiousness,Membosankan,Kepribadian_Openness
+star,Seberapa sering kamu marah?,Kepribadian_Neuroticism,,
+scale,Saya penuh ide-ide baru,Kepribadian_Openness,,
+boolean,Apakah kamu orang yang optimis?,Kepribadian_Extraversion,,
+scale,Saya berhati-hati dalam mengambil keputusan,Kepribadian_Conscientiousness,,
+choice,Mudah tersinggung,Kepribadian_Neuroticism,Menerima dengan baik,Kepribadian_Agreeableness
+star,Rating tingkat kepedulianmu pada orang lain?,Kepribadian_Agreeableness,,
+scale,Saya suka merenungkan arti kehidupan,Kepribadian_Openness,,
+boolean,Apakah kamu lebih suka memimpin daripada dipimpin?,Kepribadian_Extraversion,,
+scale,Saya jarang lupa mengembalikan barang pinjaman,Kepribadian_Conscientiousness,,
+choice,Bertemu Orang,Kepribadian_Extraversion,Me time sendirian,Kepribadian_Introversion
