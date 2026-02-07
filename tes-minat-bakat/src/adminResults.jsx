@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { Link } from 'react-router-dom'; 
-import { User, Calendar, Download, Mail, Phone, Loader2, Briefcase, AlertCircle } from 'lucide-react'; 
+import { Link } from 'react-router-dom'; // <--- Import Link
+import { User, Calendar, Download, Mail, Phone, Loader2, Edit3, Briefcase } from 'lucide-react'; // <--- Import Icon Edit
 
 export default function AdminResults() {
   const [results, setResults] = useState([]);
@@ -13,32 +13,22 @@ export default function AdminResults() {
 
   const fetchResults = async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase.from('results').select('*').order('updated_at', { ascending: false });
-      if (error) throw error;
-      setResults(data || []);
-    } catch (err) {
-      console.error("Error fetching:", err);
-      // Jangan alert error agar tidak mengganggu, cukup log saja
-    } finally {
-      setLoading(false);
-    }
+    const { data, error } = await supabase.from('results').select('*').order('updated_at', { ascending: false });
+    if (!error) setResults(data);
+    setLoading(false);
   };
 
   const handleExportCSV = () => {
     if (results.length === 0) return alert("Belum ada data!");
-    
-    // Ambil keys dari data pertama yang valid (yang punya scores)
-    const validData = results.find(r => r.scores && Object.keys(r.scores).length > 0);
-    let allScoreKeys = validData ? Object.keys(validData.scores) : [];
+    let allScoreKeys = [];
+    if (results[0] && results[0].scores) allScoreKeys = Object.keys(results[0].scores);
     
     let csvContent = "data:text/csv;charset=utf-8,";
     csvContent += "Tanggal,Nama,Email,NoHP," + allScoreKeys.join(",") + "\n";
 
     results.forEach(row => {
       const date = new Date(row.created_at).toLocaleDateString('id-ID');
-      const scores = row.scores || {};
-      const scoreValues = allScoreKeys.map(key => scores[key] || 0).join(",");
+      const scoreValues = allScoreKeys.map(key => row.scores[key] || 0).join(",");
       const rowString = `${date},"${row.user_name}","${row.email||'-'}","${row.phone||'-'}",${scoreValues}`;
       csvContent += rowString + "\n";
     });
@@ -52,34 +42,11 @@ export default function AdminResults() {
     document.body.removeChild(link);
   };
 
-  // --- FUNGSI AMAN UNTUK HITUNG DOMINAN ---
-  const getDominant = (scores) => {
-    // 1. Cek jika scores kosong/null
-    if (!scores || Object.keys(scores).length === 0) return "Belum Ada Data";
-
-    // 2. Filter hanya ambil data RIASEC (Abaikan Kepribadian untuk kolom ini)
-    const riasecOnly = { 
-      Realistic: scores.Realistic || 0, 
-      Investigative: scores.Investigative || 0, 
-      Artistic: scores.Artistic || 0, 
-      Social: scores.Social || 0, 
-      Enterprising: scores.Enterprising || 0, 
-      Conventional: scores.Conventional || 0 
-    };
-
-    // 3. Pastikan tidak mereduce array kosong
-    const keys = Object.keys(riasecOnly);
-    if (keys.length === 0) return "-";
-
-    // 4. Cari nilai tertinggi
-    return keys.reduce((a, b) => riasecOnly[a] > riasecOnly[b] ? a : b);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 p-8 font-sans">
       <div className="max-w-7xl mx-auto">
         
-        {/* --- HEADER --- */}
+        {/* --- HEADER BARU --- */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
              <h1 className="text-3xl font-extrabold text-slate-800">Dashboard Admin</h1>
@@ -87,10 +54,12 @@ export default function AdminResults() {
           </div>
           
           <div className="flex gap-3">
+            {/* TOMBOL MENU MANAJEMEN PRODI (BARU) */}
             <Link to="/admin/recommendations" className="bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 px-5 py-3 rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all">
                <Briefcase size={18}/> Kelola Prodi & Karir
             </Link>
 
+            {/* Tombol Export */}
             <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 flex items-center gap-2 transition-all">
               <Download size={18}/> Export CSV
             </button>
@@ -112,11 +81,6 @@ export default function AdminResults() {
                <Loader2 className="animate-spin mb-4" size={32}/> 
                <span className="font-medium">Sedang memuat data...</span>
             </div>
-          ) : results.length === 0 ? (
-            <div className="p-20 text-center text-slate-400 flex flex-col items-center">
-                <AlertCircle size={40} className="mb-4 opacity-50"/>
-                <span>Belum ada data responden yang masuk.</span>
-            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
@@ -130,7 +94,9 @@ export default function AdminResults() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {results.map((r) => {
-                    const dominant = getDominant(r.scores); // Pakai fungsi aman di atas
+                    const scores = r.scores || {};
+                    const riasecOnly = { R: scores.Realistic||0, I: scores.Investigative||0, A: scores.Artistic||0, S: scores.Social||0, E: scores.Enterprising||0, C: scores.Conventional||0 };
+                    const dominant = Object.keys(riasecOnly).reduce((a, b) => riasecOnly[a] > riasecOnly[b] ? a : b);
                     
                     return (
                       <tr key={r.id} className="hover:bg-slate-50 transition-colors">
@@ -146,15 +112,11 @@ export default function AdminResults() {
                         </td>
                         <td className="px-6 py-4">
                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-600 border border-indigo-100">
-                              Hal. {(r.last_page || 0) + 1}
+                              Hal. {r.last_page + 1}
                            </span>
                         </td>
                         <td className="px-6 py-4">
-                           {dominant === "Belum Ada Data" ? (
-                               <span className="inline-block px-3 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-lg">-</span>
-                           ) : (
-                               <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-100">{dominant}</span>
-                           )}
+                           <span className="inline-block px-3 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-100">{dominant}</span>
                         </td>
                       </tr>
                     )
