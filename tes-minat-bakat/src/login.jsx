@@ -1,82 +1,91 @@
-// src/Login.jsx
 import React, { useState } from 'react';
 import { supabase } from './supabaseClient';
-import { useNavigate } from 'react-router-dom';
-import { Lock, Mail } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom'; // Tambah Link
+import { Lock, Mail, ArrowLeft, Loader2, AlertCircle } from 'lucide-react'; // Tambah icon
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+    setErrorMsg('');
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email,
       password: password,
     });
 
     if (error) {
-      alert("Login Gagal: " + error.message);
+      setErrorMsg('Email atau password salah.');
+      setLoading(false);
     } else {
-      // Jika sukses, arahkan ke admin
-      navigate('/admin/dashboard');
+      navigate('/admin/dashboard'); 
     }
-    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative">
+      
+      {/* --- TOMBOL KEMBALI (NEW) --- */}
+      <Link to="/" className="absolute top-6 left-6 flex items-center gap-2 text-slate-500 hover:text-indigo-600 font-bold transition-all">
+         <ArrowLeft size={20}/> Kembali ke Tes
+      </Link>
+
+      <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl w-full max-w-md border border-slate-100">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">Admin Portal</h1>
-          <p className="text-gray-500 text-sm">Silakan login untuk mengelola data</p>
+           <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Lock size={32}/>
+           </div>
+           <h1 className="text-2xl font-extrabold text-slate-800">Admin Portal</h1>
+           <p className="text-slate-400 text-sm mt-1">Masuk untuk mengelola data.</p>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-6">
+        {errorMsg && (
+           <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl flex items-center gap-2 border border-red-100">
+              <AlertCircle size={16}/> {errorMsg}
+           </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Email</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="email"
-                required
-                className="pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="admin@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+               <Mail className="absolute left-4 top-3.5 text-slate-400" size={18}/>
+               <input 
+                 type="email" 
+                 required
+                 className="w-full pl-11 p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700" 
+                 placeholder="admin@kampus.ac.id"
+                 value={email}
+                 onChange={(e) => setEmail(e.target.value)}
+               />
             </div>
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Password</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="password"
-                required
-                className="pl-10 w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+               <Lock className="absolute left-4 top-3.5 text-slate-400" size={18}/>
+               <input 
+                 type="password" 
+                 required
+                 className="w-full pl-11 p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700" 
+                 placeholder="••••••••"
+                 value={password}
+                 onChange={(e) => setPassword(e.target.value)}
+               />
             </div>
           </div>
-
-          <button
-            type="submit"
+          <button 
+            type="submit" 
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors"
+            className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all flex justify-center items-center gap-2"
           >
-            {loading ? 'Memproses...' : 'Masuk Dashboard'}
+            {loading ? <Loader2 className="animate-spin"/> : 'Masuk Dashboard'}
           </button>
         </form>
       </div>

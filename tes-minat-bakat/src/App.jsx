@@ -9,7 +9,7 @@ import { Radar, Bar } from 'react-chartjs-2';
 import { 
   Smile, Meh, Frown, CheckCircle, ArrowRight, RefreshCcw, 
   Loader2, User, Star, ChevronRight, Briefcase, 
-  ThumbsUp, ThumbsDown, Lock, Mail, Phone, AlertTriangle, Layout, Activity, Sparkles, BrainCircuit, GraduationCap, Download, Send, EyeOff, ShieldAlert
+  ThumbsUp, ThumbsDown, Lock, Mail, Phone, AlertTriangle, Layout, Activity, Sparkles, BrainCircuit, GraduationCap, Download, Send, EyeOff, ShieldAlert, Check, XCircle
 } from 'lucide-react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
@@ -17,13 +17,13 @@ ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, 
 const ITEMS_PER_PAGE = 10;
 const PART_1_LIMIT = 99; 
 
-// DATA RESTRIKSI (Bisa ditambah sesuai request Dosen)
+// DATA RESTRIKSI (Bisa ditambah)
 const DISABILITY_RESTRICTIONS = {
   'Normal': [],
-  'Buta Warna': ['Elektro', 'Kimia', 'Kedokteran', 'Farmasi', 'Desain', 'Seni Rupa', 'Biologi', 'Arsitektur', 'Geologi'],
+  'Buta Warna': ['Elektro', 'Kimia', 'Kedokteran', 'Farmasi', 'Desain', 'Seni Rupa', 'Biologi', 'Arsitektur', 'Geologi', 'DKV'],
   'Tuna Daksa (Kaki)': ['Olahraga', 'Sipil', 'Mesin', 'Pertambangan', 'Geologi', 'Kehutanan', 'Kelautan'],
-  'Tuna Rungu': ['Musik', 'Psikologi', 'Komunikasi', 'Hubungan Internasional'],
-  'Tuna Netra (Low Vision)': ['Desain', 'Arsitektur', 'Teknik', 'Kedokteran']
+  'Tuna Rungu': ['Musik', 'Psikologi', 'Komunikasi', 'Hubungan Internasional', 'Broadcasting'],
+  'Tuna Netra (Low Vision)': ['Desain', 'Arsitektur', 'Teknik', 'Kedokteran', 'DKV']
 };
 
 function App() {
@@ -78,6 +78,28 @@ function App() {
     await supabase.from('results').update(payload).eq('id', resultId);
   };
 
+  // --- LOGIC PISAH JURUSAN (ALLOWED vs RESTRICTED) ---
+  const processMajors = (majorsString, disabilityType) => {
+      if (!majorsString) return { allowed: [], restricted: [] };
+      
+      const restrictedKeywords = DISABILITY_RESTRICTIONS[disabilityType] || [];
+      const allMajors = majorsString.split(',').map(m => m.trim());
+      
+      const allowed = [];
+      const restricted = [];
+
+      allMajors.forEach(major => {
+          const isRestricted = restrictedKeywords.some(keyword => major.toLowerCase().includes(keyword.toLowerCase()));
+          if (isRestricted) {
+              restricted.push(major);
+          } else {
+              allowed.push(major);
+          }
+      });
+
+      return { allowed, restricted };
+  };
+
   // --- LOGIC AUTO SEND EMAIL ---
   useEffect(() => {
     if (currentStep === 'result' && !emailSentRef.current && Object.keys(riasecContent).length > 0) {
@@ -95,19 +117,26 @@ function App() {
   }, [currentStep, riasecContent]);
 
   const sendEmailAuto = (content) => {
-    const serviceID = 'service_skxbuqa'; // GANTI ID ANDA
-    const templateID = 'template_n8n5crj'; // GANTI ID ANDA
-    const publicKey = 'oTNzWCAMg-4sUC5OW'; // GANTI KEY ANDA
+    const serviceID = 'service_skxbuqa'; // GANTI
+    const templateID = 'template_n8n5crj'; // GANTI
+    const publicKey = 'oTNzWCAMg-4sUC5OW'; // GANTI
+
+    // Proses jurusan agar yang dikirim ke email rapi
+    const { allowed, restricted } = processMajors(content.majors, formData.disability);
+    
+    // Format text untuk email
+    const majorsText = allowed.join(', ');
+    const restrictedText = restricted.length > 0 ? `\n\n[CATATAN MEDIS]: Jurusan berikut TIDAK DISARANKAN untuk kondisi ${formData.disability}: ${restricted.join(', ')}` : '';
 
     const templateParams = {
         to_name: formData.name,
         to_email: formData.email,
         dominant_type: content.title,
         description: content.description,
-        majors: content.majors,
+        // Kirim jurusan yang SUDAH DIFILTER + Catatan
+        majors: majorsText + restrictedText, 
         jobs: content.jobs,
         my_website_link: window.location.origin,
-        disability_note: formData.disability !== 'Normal' ? `Catatan: Peserta memiliki kondisi ${formData.disability}. Beberapa rekomendasi jurusan mungkin perlu penyesuaian.` : ''
     };
 
     emailjs.send(serviceID, templateID, templateParams, publicKey)
@@ -120,43 +149,29 @@ function App() {
     setIsLoading(true);
 
     const { data: qData, error: qError } = await supabase.from('questions').select('*').order('id', { ascending: true });
-    if (qError || !qData || qData.length === 0) {
-        alert("Gagal memuat soal."); setIsLoading(false); return;
-    }
+    if (qError || !qData) { alert("Gagal memuat soal."); setIsLoading(false); return; }
+    
     setQuestions(qData);
-    const totalPages = Math.ceil(qData.length / ITEMS_PER_PAGE);
-
+    
+    // Simpan/Resume logic
     const { data: lastResult } = await supabase.from('results').select('*').eq('email', formData.email).order('updated_at', { ascending: false }).limit(1).single();
-
     let resumeData = null;
     if (lastResult) {
-        const isFinished = (lastResult.last_page || 0) >= (totalPages - 1);
-        if (!isFinished) {
+        const totalPages = Math.ceil(qData.length / ITEMS_PER_PAGE);
+        if ((lastResult.last_page || 0) < (totalPages - 1)) {
             if (window.confirm(`Hai ${lastResult.user_name}, ingin lanjut tes sebelumnya?`)) resumeData = lastResult;
         }
     }
 
     if (resumeData) {
         setResultId(resumeData.id);
-        setFormData({ 
-            name: resumeData.user_name, 
-            email: resumeData.email, 
-            phone: resumeData.phone || '', 
-            disability: resumeData.disability || 'Normal' // Ambil data disabilitas lama
-        }); 
+        setFormData({ name: resumeData.user_name, email: resumeData.email, phone: resumeData.phone || '', disability: resumeData.disability || 'Normal' }); 
         setUserAnswers(resumeData.raw_answers || {});
         setCurrentPage(resumeData.last_page || 0);
         setCurrentStep('quiz');
     } else {
-        // SIMPAN DATA DISABILITAS KE DATABASE
         const { data: newResult } = await supabase.from('results').insert([{ 
-            user_name: formData.name, 
-            email: formData.email, 
-            phone: formData.phone, 
-            disability: formData.disability, // <--- PENTING!
-            scores: {}, 
-            last_page: 0, 
-            raw_answers: {} 
+            user_name: formData.name, email: formData.email, phone: formData.phone, disability: formData.disability, scores: {}, last_page: 0, raw_answers: {} 
           }]).select().single();
         setResultId(newResult.id);
         setCurrentStep('quiz');
@@ -173,14 +188,17 @@ function App() {
     if (currentPage < totalPages - 1) {
        nextPage = currentPage + 1;
        setCurrentPage(nextPage);
+       // --- FIX SCROLL TO TOP ---
        window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
        setCurrentStep('result');
+       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     await saveProgress(nextPage); 
     setIsLoading(false);
   };
 
+  // ... (renderQuestionCard TETAP SAMA - Copy dari kode sebelumnya) ...
   const renderQuestionCard = (q, globalIndex, myAnswer) => {
      const scaleOptions = [{v:1, i:<Frown/>, l:'Sangat Tidak', c:'text-rose-500 bg-rose-50 border-rose-200'}, {v:2, i:<Frown/>, l:'Tidak Suka', c:'text-orange-500 bg-orange-50 border-orange-200'}, {v:3, i:<Meh/>, l:'Netral', c:'text-amber-500 bg-amber-50 border-amber-200'}, {v:4, i:<Smile/>, l:'Suka', c:'text-emerald-500 bg-emerald-50 border-emerald-200'}, {v:5, i:<Smile/>, l:'Sangat Suka', c:'text-teal-600 bg-teal-50 border-teal-200'}];
      switch(q.type) {
@@ -192,6 +210,7 @@ function App() {
      }
   };
 
+  // --- HALAMAN 1: INTRO ---
   if (currentStep === 'intro') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans relative">
@@ -203,21 +222,7 @@ function App() {
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Nama Lengkap" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})}/>
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Email" value={formData.email} onChange={e=>setFormData({...formData, email:e.target.value})}/>
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="No WhatsApp" value={formData.phone} onChange={e=>setFormData({...formData, phone:e.target.value})}/>
-                 
-                 {/* INPUT DISABILITAS (Wajib Diisi) */}
-                 <div className="relative group">
-                    <div className="absolute left-4 top-3.5 text-slate-400"><EyeOff size={18}/></div>
-                    <select 
-                        className="w-full pl-11 p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700 appearance-none cursor-pointer"
-                        value={formData.disability}
-                        onChange={e => setFormData({...formData, disability: e.target.value})}
-                    >
-                        {Object.keys(DISABILITY_RESTRICTIONS).map(k => (
-                            <option key={k} value={k}>{k === 'Normal' ? 'Tidak Ada Disabilitas / Normal' : k}</option>
-                        ))}
-                    </select>
-                 </div>
-
+                 <div className="relative group"><div className="absolute left-4 top-3.5 text-slate-400"><EyeOff size={18}/></div><select className="w-full pl-11 p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700 appearance-none cursor-pointer" value={formData.disability} onChange={e => setFormData({...formData, disability: e.target.value})}>{Object.keys(DISABILITY_RESTRICTIONS).map(k => (<option key={k} value={k}>{k === 'Normal' ? 'Tidak Ada Disabilitas / Normal' : k}</option>))}</select></div>
                  <button className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg flex justify-center items-center gap-2 mt-2">{isLoading ? <Loader2 className="animate-spin"/> : <>Mulai Tes <ArrowRight size={18}/></>}</button>
               </form>
            </div>
@@ -227,6 +232,7 @@ function App() {
     );
   }
 
+  // --- HALAMAN 2: QUIZ ---
   if (currentStep === 'quiz' && questions.length > 0) {
     const totalPages = Math.ceil(questions.length / ITEMS_PER_PAGE);
     const progress = ((currentPage + 1) / totalPages) * 100;
@@ -243,6 +249,7 @@ function App() {
     );
   }
 
+  // --- HALAMAN 3: RESULT (INOVATIF & INFORMATIF) ---
   if (currentStep === 'result') {
      const scores = calculateFinalScores();
      const riasecScores = { Realistic: scores.Realistic||0, Investigative: scores.Investigative||0, Artistic: scores.Artistic||0, Social: scores.Social||0, Enterprising: scores.Enterprising||0, Conventional: scores.Conventional||0 };
@@ -252,49 +259,66 @@ function App() {
      const riasecChartData = { labels: Object.keys(riasecScores), datasets: [{ label: 'Skor', data: Object.values(riasecScores), backgroundColor: 'rgba(99, 102, 241, 0.2)', borderColor: '#6366f1', borderWidth: 2 }] };
      const personalityChartData = { labels: Object.keys(personalityScores), datasets: [{ label: 'Skor', data: Object.values(personalityScores), backgroundColor: 'rgba(236, 72, 153, 0.6)', borderColor: '#db2777', borderWidth: 0 }] };
 
-     // --- FILTER DISABILITAS ---
-     const restrictedKeywords = DISABILITY_RESTRICTIONS[formData.disability] || [];
-     const renderMajors = (majorsString) => {
-        if (!majorsString) return '-';
-        return majorsString.split(',').map((m, i) => {
-            const majorName = m.trim();
-            const isRestricted = restrictedKeywords.some(keyword => majorName.toLowerCase().includes(keyword.toLowerCase()));
-            if (isRestricted) {
-                return (
-                    <span key={i} className="px-3 py-1 bg-slate-100 text-slate-400 rounded-lg text-xs font-bold border border-slate-200 flex items-center gap-1 cursor-help" title={`Tidak disarankan untuk ${formData.disability}`}>
-                        <span className="line-through decoration-red-500 decoration-2">{majorName}</span>
-                        <ShieldAlert size={12} className="text-red-500"/>
-                    </span>
-                );
-            }
-            return <span key={i} className="px-3 py-1 bg-pink-50 text-pink-700 border border-pink-100 rounded-lg text-xs font-bold">{majorName}</span>;
-        });
-     };
+     // MEMISAHKAN JURUSAN (INOVASI TAMPILAN)
+     const { allowed, restricted } = processMajors(content.majors, formData.disability);
 
      return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 font-sans">
            <div className="max-w-5xl mx-auto space-y-6">
+              
+              {/* HEADER */}
               <div className="bg-white rounded-3xl p-8 text-center shadow-lg border-t-8 border-indigo-600">
                  <h1 className="text-3xl font-extrabold text-slate-800">Hasil Analisis Potensi</h1>
-                 <p className="text-slate-500 mt-2">Peserta: <strong className="text-indigo-600">{formData.name}</strong> ({formData.disability})</p>
-                 {emailSent && <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-200"><CheckCircle size={14}/> Laporan terkirim</div>}
+                 <p className="text-slate-500 mt-2">Peserta: <strong className="text-indigo-600">{formData.name}</strong></p>
+                 <div className="mt-2 text-xs font-bold px-3 py-1 bg-slate-100 rounded-full inline-block text-slate-500">Kondisi: {formData.disability}</div>
+                 {emailSent && <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-200"><CheckCircle size={14}/> Laporan dikirim ke {formData.email}</div>}
               </div>
 
+              {/* TABS */}
               <div className="flex justify-center gap-2 bg-white p-1.5 rounded-xl shadow-sm w-fit mx-auto no-print">
-                 <button onClick={()=>setResultTab('minat')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='minat'?'bg-indigo-600 text-white':'text-slate-500'}`}>Minat</button>
+                 <button onClick={()=>setResultTab('minat')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='minat'?'bg-indigo-600 text-white':'text-slate-500'}`}>Minat Karir</button>
                  <button onClick={()=>setResultTab('kepribadian')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='kepribadian'?'bg-pink-600 text-white':'text-slate-500'}`}>Kepribadian</button>
               </div>
 
               {resultTab === 'minat' && (
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up">
                     <div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center"><h3 className="font-bold mb-6">Peta Minat</h3><div className="w-full max-w-xs"><Radar data={riasecChartData}/></div></div>
+                    
                     <div className="space-y-4">
-                       <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100"><span className="text-xs font-bold text-indigo-500 uppercase">Dominasi</span><div className="text-3xl font-black text-indigo-900 mt-1 mb-3">{content.title}</div><p className="text-sm text-slate-700">{content.description}</p></div>
-                       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                          <h4 className="font-bold text-slate-800 mb-3 flex gap-2"><GraduationCap className="text-pink-500"/> Jurusan Rekomendasi</h4>
-                          {formData.disability !== 'Normal' && <div className="mb-3 text-xs bg-red-50 text-red-600 p-2 rounded border border-red-100 flex items-start gap-2"><ShieldAlert size={14}/><span>Beberapa jurusan dicoret karena persyaratan medis khusus untuk <b>{formData.disability}</b>.</span></div>}
-                          <div className="flex flex-wrap gap-2">{renderMajors(content.majors)}</div>
+                       {/* 1. ANALISIS PROFIL (LEBIH INFORMATIF) */}
+                       <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
+                          <div className="flex items-center gap-2 mb-2"><Sparkles size={18} className="text-indigo-600"/><span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Tipe Dominan</span></div>
+                          <div className="text-3xl font-black text-indigo-900 mt-1 mb-3">{content.title}</div>
+                          <p className="text-sm text-slate-700 leading-relaxed mb-4">{content.description}</p>
+                          <div className="text-xs font-bold text-indigo-600 bg-white p-3 rounded-xl border border-indigo-100">
+                             💡 Analisis Singkat: Anda memiliki kecenderungan kuat dalam bidang {content.title?.split(' ')[2]}. Lingkungan kerja yang {dominant === 'Realistic' ? 'praktis' : dominant === 'Social' ? 'mendukung' : 'terstruktur'} akan membuat Anda berkembang pesat.
+                          </div>
                        </div>
+                       
+                       {/* 2. REKOMENDASI JURUSAN (INOVASI: DIPISAHKAN) */}
+                       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                          <h4 className="font-bold text-slate-800 mb-4 flex gap-2"><GraduationCap className="text-pink-500"/> Program Studi</h4>
+                          
+                          {/* LIST JURUSAN COCOK */}
+                          <div className="mb-4">
+                             <div className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1"><CheckCircle size={12}/> Sangat Direkomendasikan</div>
+                             <div className="flex flex-wrap gap-2">
+                                {allowed.length > 0 ? allowed.map((m,i)=>(<span key={i} className="px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded-lg text-xs font-bold">{m}</span>)) : <span className="text-xs text-slate-400">Tidak ada data.</span>}
+                             </div>
+                          </div>
+
+                          {/* LIST JURUSAN RESTRICTED (JIKA ADA) */}
+                          {restricted.length > 0 && (
+                              <div className="pt-4 border-t border-slate-100">
+                                 <div className="text-xs font-bold text-red-500 mb-2 flex items-center gap-1"><XCircle size={12}/> Terbatas (Syarat Medis: {formData.disability})</div>
+                                 <div className="flex flex-wrap gap-2">
+                                    {restricted.map((m,i)=>(<span key={i} className="px-3 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-bold line-through opacity-70" title="Membutuhkan syarat fisik khusus">{m}</span>))}
+                                 </div>
+                                 <p className="text-[10px] text-slate-400 mt-2 italic">*Jurusan di atas biasanya memiliki tes kesehatan khusus yang mungkin menjadi hambatan bagi kondisi Anda.</p>
+                              </div>
+                          )}
+                       </div>
+
                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><h4 className="font-bold text-slate-800 mb-3 flex gap-2"><Briefcase className="text-blue-500"/> Karir</h4><div className="flex flex-wrap gap-2">{content.jobs?.split(',').map((j,i)=><span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-100">{j.trim()}</span>)}</div></div>
                     </div>
                  </div>
