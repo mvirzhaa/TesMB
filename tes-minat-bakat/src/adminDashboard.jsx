@@ -25,7 +25,7 @@ export default function AdminDashboard() {
   });
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState(null); // Add Error State
+  const [errorMsg, setErrorMsg] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -35,10 +35,7 @@ export default function AdminDashboard() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      // 1. Cek Koneksi Supabase (Opsional tapi bagus untuk debug)
-      if (!supabase) throw new Error("Klien Supabase tidak terinisialisasi.");
-
-      // 2. Ambil Data
+      // 1. Ambil Data dari Supabase
       const { data, error } = await supabase
         .from('results')
         .select('*')
@@ -57,9 +54,11 @@ export default function AdminDashboard() {
         };
 
         data.forEach(user => {
-          // Pastikan user punya scores dan tidak kosong
+          // --- FIX ERROR DISINI ---
+          // Kita cek dulu: Apakah user punya skor? Dan apakah skornya tidak kosong?
           if (user.scores && Object.keys(user.scores).length > 0) {
-             // Filter hanya ambil key RIASEC (abaikan Kepribadian) untuk statistik minat
+             
+             // Filter hanya ambil key RIASEC (abaikan Kepribadian untuk chart minat)
              const riasecOnly = { 
                 Realistic: user.scores.Realistic || 0, 
                 Investigative: user.scores.Investigative || 0, 
@@ -69,17 +68,21 @@ export default function AdminDashboard() {
                 Conventional: user.scores.Conventional || 0 
              };
              
-             // Cari nilai tertinggi
+             // Cari nilai tertinggi (Aman karena array riasecOnly pasti ada isinya)
              const topCategory = Object.keys(riasecOnly).reduce((a, b) => riasecOnly[a] > riasecOnly[b] ? a : b);
+             
              if (interestCounts[topCategory] !== undefined) {
                interestCounts[topCategory]++;
              }
           }
         });
 
-        // Cari Minat Paling Populer (Safe Reduce)
+        // Cari Minat Paling Populer (Safe Check)
         let topInterest = '-';
-        if (total > 0) {
+        // Cek apakah ada data minat yang masuk
+        const totalInterests = Object.values(interestCounts).reduce((a, b) => a + b, 0);
+        
+        if (totalInterests > 0) {
             topInterest = Object.keys(interestCounts).reduce((a, b) => interestCounts[a] > interestCounts[b] ? a : b);
         }
 
@@ -113,25 +116,25 @@ export default function AdminDashboard() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-        <RefreshCw className="animate-spin mb-2" />
-        <p>Memuat Statistik...</p>
+    <div className="flex flex-col items-center justify-center h-screen text-slate-500 bg-slate-50">
+        <RefreshCw className="animate-spin mb-2" size={32}/>
+        <p className="font-semibold">Memuat Statistik...</p>
     </div>
   );
 
   if (errorMsg) return (
-    <div className="p-10 text-center flex flex-col items-center justify-center h-64 text-red-500 bg-red-50 rounded-xl m-6 border border-red-100">
+    <div className="p-10 text-center flex flex-col items-center justify-center h-screen text-red-500 bg-slate-50">
         <AlertCircle size={48} className="mb-4"/>
         <h3 className="text-lg font-bold">Gagal Memuat Dashboard</h3>
-        <p className="text-sm mb-6 max-w-md">{errorMsg}</p>
-        <button onClick={fetchData} className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg font-bold hover:bg-red-50 transition shadow-sm">
+        <p className="text-sm mb-6 max-w-md bg-red-50 p-4 rounded-lg border border-red-200">{errorMsg}</p>
+        <button onClick={fetchData} className="px-6 py-2 bg-white border border-red-200 text-red-600 rounded-lg font-bold hover:bg-red-50 transition shadow-sm">
             Coba Lagi
         </button>
     </div>
   );
 
   return (
-    <div className="p-6 md:p-10 bg-slate-50/50 min-h-full font-sans">
+    <div className="p-6 md:p-10 bg-slate-50/50 min-h-screen font-sans">
       <h1 className="text-3xl font-extrabold text-slate-800 mb-2">Dashboard Overview</h1>
       <p className="text-slate-500 mb-8">Ringkasan performa tes minat bakat.</p>
 
@@ -156,7 +159,7 @@ export default function AdminDashboard() {
           <div>
             <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Status Sistem</p>
             <h3 className="text-2xl font-extrabold text-slate-800 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500"></span> Online
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Online
             </h3>
           </div>
         </div>
@@ -179,11 +182,11 @@ export default function AdminDashboard() {
           <div className="space-y-4">
             {stats.recentUsers.map((u) => (
               <div key={u.id} className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition border border-transparent hover:border-slate-100">
-                <div className="w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center text-slate-600 font-bold shadow-inner">
+                <div className="w-10 h-10 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center text-slate-600 font-bold shadow-inner shrink-0">
                    {(u.user_name || '?').charAt(0).toUpperCase()}
                 </div>
-                <div>
-                   <p className="text-sm font-bold text-slate-700">{u.user_name || 'Tanpa Nama'}</p>
+                <div className="overflow-hidden">
+                   <p className="text-sm font-bold text-slate-700 truncate">{u.user_name || 'Tanpa Nama'}</p>
                    <p className="text-xs text-slate-400 flex items-center gap-1">
                      <Calendar size={10}/> {new Date(u.created_at).toLocaleDateString()}
                    </p>
