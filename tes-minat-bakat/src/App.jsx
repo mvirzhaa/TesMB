@@ -9,7 +9,7 @@ import { Radar, Bar } from 'react-chartjs-2';
 import { 
   Smile, Meh, Frown, CheckCircle, ArrowRight, RefreshCcw, 
   Loader2, User, Star, ChevronRight, Briefcase, 
-  ThumbsUp, ThumbsDown, Lock, Mail, Phone, AlertTriangle, Layout, Activity, Sparkles, BrainCircuit, GraduationCap, Download, Send, EyeOff, ShieldAlert, Check, XCircle
+  ThumbsUp, ThumbsDown, Lock, Mail, Phone, AlertTriangle, Layout, Activity, Sparkles, BrainCircuit, GraduationCap, Download, Send, EyeOff, ShieldAlert, XCircle, Info
 } from 'lucide-react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
@@ -17,13 +17,28 @@ ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, 
 const ITEMS_PER_PAGE = 10;
 const PART_1_LIMIT = 99; 
 
-// DATA RESTRIKSI (Bisa ditambah)
-const DISABILITY_RESTRICTIONS = {
-  'Normal': [],
-  'Buta Warna': ['Elektro', 'Kimia', 'Kedokteran', 'Farmasi', 'Desain', 'Seni Rupa', 'Biologi', 'Arsitektur', 'Geologi', 'DKV'],
-  'Tuna Daksa (Kaki)': ['Olahraga', 'Sipil', 'Mesin', 'Pertambangan', 'Geologi', 'Kehutanan', 'Kelautan'],
-  'Tuna Rungu': ['Musik', 'Psikologi', 'Komunikasi', 'Hubungan Internasional', 'Broadcasting'],
-  'Tuna Netra (Low Vision)': ['Desain', 'Arsitektur', 'Teknik', 'Kedokteran', 'DKV']
+// --- DATA LOGIKA DISABILITAS (DIPERBARUI DENGAN ALASAN) ---
+const DISABILITY_RULES = {
+  'Normal': {
+    restricted: [],
+    reason: ""
+  },
+  'Buta Warna': {
+    restricted: ['Elektro', 'Kimia', 'Kedokteran', 'Farmasi', 'Desain', 'Seni Rupa', 'Biologi', 'Arsitektur', 'Geologi', 'DKV', 'Teknik Fisika'],
+    reason: "Program studi ini sangat bergantung pada identifikasi warna akurat untuk kode kabel, reaksi kimia, diagnosis medis, atau komposisi visual estetika."
+  },
+  'Tuna Daksa (Kaki)': {
+    restricted: ['Olahraga', 'Sipil', 'Mesin', 'Pertambangan', 'Geologi', 'Kehutanan', 'Kelautan', 'Oseanografi'],
+    reason: "Program studi ini mewajibkan mobilitas fisik tinggi di lapangan, survei lokasi terjal, atau pengoperasian alat berat yang membutuhkan ketangkasan kaki."
+  },
+  'Tuna Rungu': {
+    restricted: ['Musik', 'Psikologi', 'Komunikasi', 'Hubungan Internasional', 'Broadcasting', 'Seni Suara'],
+    reason: "Program studi ini sangat menitikberatkan pada kepekaan auditif (pendengaran), intonasi suara, dan komunikasi verbal intensif tanpa alat bantu visual."
+  },
+  'Tuna Netra (Low Vision)': {
+    restricted: ['Desain', 'Arsitektur', 'Teknik', 'Kedokteran', 'DKV', 'Seni Rupa', 'Pilot', 'Astronomi'],
+    reason: "Program studi ini membutuhkan ketajaman visual tinggi untuk menggambar presisi, pembedahan mikro, atau pengamatan detail visual yang kompleks."
+  }
 };
 
 function App() {
@@ -41,6 +56,10 @@ function App() {
   const [userAnswers, setUserAnswers] = useState({});
   const [resultId, setResultId] = useState(null);
   const [riasecContent, setRiasecContent] = useState({});
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [currentPage, currentStep]);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -78,29 +97,26 @@ function App() {
     await supabase.from('results').update(payload).eq('id', resultId);
   };
 
-  // --- LOGIC PISAH JURUSAN (ALLOWED vs RESTRICTED) ---
+  // --- LOGIC PROSES JURUSAN (Updated untuk Struktur Baru) ---
   const processMajors = (majorsString, disabilityType) => {
       if (!majorsString) return { allowed: [], restricted: [] };
       
-      const restrictedKeywords = DISABILITY_RESTRICTIONS[disabilityType] || [];
-      const allMajors = majorsString.split(',').map(m => m.trim());
+      // Ambil rule berdasarkan tipe, atau default kosong
+      const rule = DISABILITY_RULES[disabilityType] || { restricted: [] };
+      const restrictedKeywords = rule.restricted;
       
+      const allMajors = majorsString.split(',').map(m => m.trim());
       const allowed = [];
       const restricted = [];
 
       allMajors.forEach(major => {
           const isRestricted = restrictedKeywords.some(keyword => major.toLowerCase().includes(keyword.toLowerCase()));
-          if (isRestricted) {
-              restricted.push(major);
-          } else {
-              allowed.push(major);
-          }
+          if (isRestricted) restricted.push(major); else allowed.push(major);
       });
 
-      return { allowed, restricted };
+      return { allowed, restricted, reason: rule.reason };
   };
 
-  // --- LOGIC AUTO SEND EMAIL ---
   useEffect(() => {
     if (currentStep === 'result' && !emailSentRef.current && Object.keys(riasecContent).length > 0) {
         const scores = calculateFinalScores();
@@ -121,19 +137,18 @@ function App() {
     const templateID = 'template_n8n5crj'; // GANTI
     const publicKey = 'oTNzWCAMg-4sUC5OW'; // GANTI
 
-    // Proses jurusan agar yang dikirim ke email rapi
-    const { allowed, restricted } = processMajors(content.majors, formData.disability);
-    
-    // Format text untuk email
+    const { allowed, restricted, reason } = processMajors(content.majors, formData.disability);
     const majorsText = allowed.join(', ');
-    const restrictedText = restricted.length > 0 ? `\n\n[CATATAN MEDIS]: Jurusan berikut TIDAK DISARANKAN untuk kondisi ${formData.disability}: ${restricted.join(', ')}` : '';
+    // Tambahkan alasan medis ke email juga
+    const restrictedText = restricted.length > 0 
+        ? `\n\n[CATATAN MEDIS PENTING]:\nBerdasarkan kondisi ${formData.disability}, jurusan berikut TIDAK DISARANKAN: ${restricted.join(', ')}.\n\nALASAN: ${reason}` 
+        : '';
 
     const templateParams = {
         to_name: formData.name,
         to_email: formData.email,
         dominant_type: content.title,
         description: content.description,
-        // Kirim jurusan yang SUDAH DIFILTER + Catatan
         majors: majorsText + restrictedText, 
         jobs: content.jobs,
         my_website_link: window.location.origin,
@@ -153,7 +168,6 @@ function App() {
     
     setQuestions(qData);
     
-    // Simpan/Resume logic
     const { data: lastResult } = await supabase.from('results').select('*').eq('email', formData.email).order('updated_at', { ascending: false }).limit(1).single();
     let resumeData = null;
     if (lastResult) {
@@ -188,17 +202,13 @@ function App() {
     if (currentPage < totalPages - 1) {
        nextPage = currentPage + 1;
        setCurrentPage(nextPage);
-       // --- FIX SCROLL TO TOP ---
-       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
        setCurrentStep('result');
-       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     await saveProgress(nextPage); 
     setIsLoading(false);
   };
 
-  // ... (renderQuestionCard TETAP SAMA - Copy dari kode sebelumnya) ...
   const renderQuestionCard = (q, globalIndex, myAnswer) => {
      const scaleOptions = [{v:1, i:<Frown/>, l:'Sangat Tidak', c:'text-rose-500 bg-rose-50 border-rose-200'}, {v:2, i:<Frown/>, l:'Tidak Suka', c:'text-orange-500 bg-orange-50 border-orange-200'}, {v:3, i:<Meh/>, l:'Netral', c:'text-amber-500 bg-amber-50 border-amber-200'}, {v:4, i:<Smile/>, l:'Suka', c:'text-emerald-500 bg-emerald-50 border-emerald-200'}, {v:5, i:<Smile/>, l:'Sangat Suka', c:'text-teal-600 bg-teal-50 border-teal-200'}];
      switch(q.type) {
@@ -210,7 +220,6 @@ function App() {
      }
   };
 
-  // --- HALAMAN 1: INTRO ---
   if (currentStep === 'intro') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans relative">
@@ -222,7 +231,7 @@ function App() {
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Nama Lengkap" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})}/>
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Email" value={formData.email} onChange={e=>setFormData({...formData, email:e.target.value})}/>
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="No WhatsApp" value={formData.phone} onChange={e=>setFormData({...formData, phone:e.target.value})}/>
-                 <div className="relative group"><div className="absolute left-4 top-3.5 text-slate-400"><EyeOff size={18}/></div><select className="w-full pl-11 p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700 appearance-none cursor-pointer" value={formData.disability} onChange={e => setFormData({...formData, disability: e.target.value})}>{Object.keys(DISABILITY_RESTRICTIONS).map(k => (<option key={k} value={k}>{k === 'Normal' ? 'Tidak Ada Disabilitas / Normal' : k}</option>))}</select></div>
+                 <div className="relative group"><div className="absolute left-4 top-3.5 text-slate-400"><EyeOff size={18}/></div><select className="w-full pl-11 p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700 appearance-none cursor-pointer" value={formData.disability} onChange={e => setFormData({...formData, disability: e.target.value})}>{Object.keys(DISABILITY_RULES).map(k => (<option key={k} value={k}>{k === 'Normal' ? 'Tidak Ada Disabilitas / Normal' : k}</option>))}</select></div>
                  <button className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg flex justify-center items-center gap-2 mt-2">{isLoading ? <Loader2 className="animate-spin"/> : <>Mulai Tes <ArrowRight size={18}/></>}</button>
               </form>
            </div>
@@ -232,7 +241,6 @@ function App() {
     );
   }
 
-  // --- HALAMAN 2: QUIZ ---
   if (currentStep === 'quiz' && questions.length > 0) {
     const totalPages = Math.ceil(questions.length / ITEMS_PER_PAGE);
     const progress = ((currentPage + 1) / totalPages) * 100;
@@ -249,7 +257,6 @@ function App() {
     );
   }
 
-  // --- HALAMAN 3: RESULT (INOVATIF & INFORMATIF) ---
   if (currentStep === 'result') {
      const scores = calculateFinalScores();
      const riasecScores = { Realistic: scores.Realistic||0, Investigative: scores.Investigative||0, Artistic: scores.Artistic||0, Social: scores.Social||0, Enterprising: scores.Enterprising||0, Conventional: scores.Conventional||0 };
@@ -259,8 +266,8 @@ function App() {
      const riasecChartData = { labels: Object.keys(riasecScores), datasets: [{ label: 'Skor', data: Object.values(riasecScores), backgroundColor: 'rgba(99, 102, 241, 0.2)', borderColor: '#6366f1', borderWidth: 2 }] };
      const personalityChartData = { labels: Object.keys(personalityScores), datasets: [{ label: 'Skor', data: Object.values(personalityScores), backgroundColor: 'rgba(236, 72, 153, 0.6)', borderColor: '#db2777', borderWidth: 0 }] };
 
-     // MEMISAHKAN JURUSAN (INOVASI TAMPILAN)
-     const { allowed, restricted } = processMajors(content.majors, formData.disability);
+     // --- AMBIL HASIL FILTER JURUSAN & ALASANNYA ---
+     const { allowed, restricted, reason } = processMajors(content.majors, formData.disability);
 
      return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 font-sans">
@@ -274,7 +281,6 @@ function App() {
                  {emailSent && <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-200"><CheckCircle size={14}/> Laporan dikirim ke {formData.email}</div>}
               </div>
 
-              {/* TABS */}
               <div className="flex justify-center gap-2 bg-white p-1.5 rounded-xl shadow-sm w-fit mx-auto no-print">
                  <button onClick={()=>setResultTab('minat')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='minat'?'bg-indigo-600 text-white':'text-slate-500'}`}>Minat Karir</button>
                  <button onClick={()=>setResultTab('kepribadian')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='kepribadian'?'bg-pink-600 text-white':'text-slate-500'}`}>Kepribadian</button>
@@ -285,7 +291,6 @@ function App() {
                     <div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center"><h3 className="font-bold mb-6">Peta Minat</h3><div className="w-full max-w-xs"><Radar data={riasecChartData}/></div></div>
                     
                     <div className="space-y-4">
-                       {/* 1. ANALISIS PROFIL (LEBIH INFORMATIF) */}
                        <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100">
                           <div className="flex items-center gap-2 mb-2"><Sparkles size={18} className="text-indigo-600"/><span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Tipe Dominan</span></div>
                           <div className="text-3xl font-black text-indigo-900 mt-1 mb-3">{content.title}</div>
@@ -295,7 +300,6 @@ function App() {
                           </div>
                        </div>
                        
-                       {/* 2. REKOMENDASI JURUSAN (INOVASI: DIPISAHKAN) */}
                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                           <h4 className="font-bold text-slate-800 mb-4 flex gap-2"><GraduationCap className="text-pink-500"/> Program Studi</h4>
                           
@@ -307,14 +311,24 @@ function App() {
                              </div>
                           </div>
 
-                          {/* LIST JURUSAN RESTRICTED (JIKA ADA) */}
+                          {/* LIST JURUSAN TERBATAS (DENGAN PENJELASAN) */}
                           {restricted.length > 0 && (
                               <div className="pt-4 border-t border-slate-100">
-                                 <div className="text-xs font-bold text-red-500 mb-2 flex items-center gap-1"><XCircle size={12}/> Terbatas (Syarat Medis: {formData.disability})</div>
-                                 <div className="flex flex-wrap gap-2">
-                                    {restricted.map((m,i)=>(<span key={i} className="px-3 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-bold line-through opacity-70" title="Membutuhkan syarat fisik khusus">{m}</span>))}
+                                 <div className="text-xs font-bold text-red-500 mb-2 flex items-center gap-1"><XCircle size={12}/> Tidak Disarankan (Kondisi: {formData.disability})</div>
+                                 
+                                 {/* LIST DI CORET */}
+                                 <div className="flex flex-wrap gap-2 mb-3">
+                                    {restricted.map((m,i)=>(<span key={i} className="px-3 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-bold line-through opacity-70">{m}</span>))}
                                  </div>
-                                 <p className="text-[10px] text-slate-400 mt-2 italic">*Jurusan di atas biasanya memiliki tes kesehatan khusus yang mungkin menjadi hambatan bagi kondisi Anda.</p>
+
+                                 {/* BOX PENJELASAN MEDIS (BARU) */}
+                                 <div className="p-3 bg-red-50 rounded-xl border border-red-100 text-xs text-red-700 leading-relaxed flex gap-2">
+                                    <Info size={16} className="shrink-0 mt-0.5"/>
+                                    <span>
+                                        <strong>Kenapa jurusan di atas tidak dianjurkan?</strong><br/>
+                                        {reason}
+                                    </span>
+                                 </div>
                               </div>
                           )}
                        </div>
