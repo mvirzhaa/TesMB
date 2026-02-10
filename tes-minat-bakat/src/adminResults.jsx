@@ -1,158 +1,296 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
-import { Link } from 'react-router-dom'; 
 import emailjs from '@emailjs/browser';
-import { User, Calendar, Download, Mail, Phone, Loader2, Briefcase, Send, Check, AlertCircle, EyeOff } from 'lucide-react'; 
+import { 
+  Search, Download, Trash2, Mail, RefreshCcw, 
+  ChevronDown, ChevronUp, Loader2, Filter, Eye,
+  CheckCircle, XCircle, BrainCircuit, BookOpen
+} from 'lucide-react';
+import * as XLSX from 'xlsx';
+
+// --- DATA KONSTANTA (Sama dengan App.jsx untuk konsistensi Email) ---
+const DISABILITY_RULES = {
+  'Normal': { restricted: [], reason: "" },
+  'Buta Warna': { restricted: ['Elektro', 'Kimia', 'Kedokteran', 'Farmasi', 'Desain', 'Seni Rupa', 'Biologi', 'Arsitektur', 'Geologi', 'DKV', 'Teknik Fisika'], reason: "Butuh identifikasi warna akurat." },
+  'Tuna Daksa (Kaki)': { restricted: ['Olahraga', 'Sipil', 'Mesin', 'Pertambangan', 'Geologi', 'Kehutanan', 'Kelautan', 'Oseanografi'], reason: "Butuh mobilitas fisik lapangan." },
+  'Tuna Rungu': { restricted: ['Musik', 'Psikologi', 'Komunikasi', 'Hubungan Internasional', 'Broadcasting', 'Seni Suara'], reason: "Butuh kepekaan auditif." },
+  'Tuna Netra (Low Vision)': { restricted: ['Desain', 'Arsitektur', 'Teknik', 'Kedokteran', 'DKV', 'Seni Rupa', 'Pilot', 'Astronomi'], reason: "Butuh ketajaman visual." }
+};
+
+const VARK_DESCRIPTIONS = {
+  'Visual': 'Belajar dengan melihat (Grafik, Diagram, Peta).',
+  'Aural': 'Belajar dengan mendengar (Diskusi, Ceramah).',
+  'Read/Write': 'Belajar dengan membaca & menulis (Buku, Catatan).',
+  'Kinesthetic': 'Belajar dengan praktek (Simulasi, Pengalaman).',
+  'Multimodal': 'Gaya belajar kombinasi/fleksibel.'
+};
 
 export default function AdminResults() {
   const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [riasecContent, setRiasecContent] = useState({});
-  const [sendingId, setSendingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [sendingEmailId, setSendingEmailId] = useState(null);
 
+  // --- 1. FETCH DATA ---
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: resData } = await supabase.from('results').select('*').order('updated_at', { ascending: false });
-    const { data: contentData } = await supabase.from('riasec_content').select('*');
-    if (resData) setResults(resData);
+    // Ambil Hasil Tes
+    const { data: resData, error } = await supabase
+      .from('results')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    // Ambil Konten RIASEC (untuk keperluan kirim email ulang)
+    const { data: contentData } = await supabase
+      .from('riasec_content')
+      .select('*');
+
     if (contentData) {
-        const map = {};
-        contentData.forEach(c => map[c.category] = c);
-        setRiasecContent(map);
+      const map = {};
+      contentData.forEach(item => map[item.category] = item);
+      setRiasecContent(map);
     }
+
+    if (!error) setResults(resData);
     setLoading(false);
   };
 
-  const handleResendEmail = async (user) => {
-    if (!user.scores || Object.keys(user.scores).length === 0) return alert("User ini belum menyelesaikan tes.");
-    setSendingId(user.id);
-
-    const riasecOnly = { 
-        Realistic: user.scores.Realistic || 0, Investigative: user.scores.Investigative || 0, 
-        Artistic: user.scores.Artistic || 0, Social: user.scores.Social || 0, 
-        Enterprising: user.scores.Enterprising || 0, Conventional: user.scores.Conventional || 0 
+  // --- 2. LOGIC PENENTUAN HASIL (Helper) ---
+  const getDominantVARK = (scores) => {
+    if (!scores) return '-';
+    const varkScores = { 
+      Visual: scores.Visual||0, 
+      Aural: scores.Aural||0, 
+      'Read/Write': scores['Read/Write']||0, 
+      Kinesthetic: scores.Kinesthetic||0 
     };
-    const dominant = Object.keys(riasecOnly).reduce((a, b) => riasecOnly[a] > riasecOnly[b] ? a : b);
-    const content = riasecContent[dominant];
+    const max = Math.max(...Object.values(varkScores));
+    if (max === 0) return '-'; // Belum tes
+    const topKeys = Object.keys(varkScores).filter(k => varkScores[k] === max);
+    return topKeys.length > 1 ? 'Multimodal' : topKeys[0];
+  };
 
-    if (!content) { alert("Data konten belum tersedia."); setSendingId(null); return; }
+  const getDominantRIASEC = (scores) => {
+    if (!scores) return '-';
+    const riasecOnly = { 
+      Realistic: scores.Realistic||0, Investigative: scores.Investigative||0, 
+      Artistic: scores.Artistic||0, Social: scores.Social||0, 
+      Enterprising: scores.Enterprising||0, Conventional: scores.Conventional||0 
+    };
+    // Cek jika kosong
+    if (Object.values(riasecOnly).every(v => v === 0)) return '-';
+    return Object.keys(riasecOnly).reduce((a, b) => riasecOnly[a] > riasecOnly[b] ? a : b);
+  };
 
-    const serviceID = 'service_skxbuqa'; // GANTI ID ANDA
-    const templateID = 'template_n8n5crj'; // GANTI ID ANDA
-    const publicKey = 'oTNzWCAMg-4sUC5OW'; // GANTI KEY ANDA
+  // --- 3. KIRIM ULANG EMAIL (VERSI LENGKAP) ---
+  const handleResendEmail = async (user) => {
+    if (!confirm(`Kirim ulang email hasil lengkap ke ${user.email}?`)) return;
+    setSendingEmailId(user.id);
 
-    const templateParams = {
+    try {
+      const scores = user.scores || {};
+      
+      // A. Siapkan RIASEC
+      const dominantR = getDominantRIASEC(scores);
+      const content = riasecContent[dominantR];
+      if (!content) throw new Error("Data konten RIASEC tidak ditemukan.");
+
+      // B. Siapkan VARK
+      const dominantV = getDominantVARK(scores);
+      const varkScores = { Visual: scores.Visual||0, Aural: scores.Aural||0, 'Read/Write': scores['Read/Write']||0, Kinesthetic: scores.Kinesthetic||0 };
+      const varkDesc = VARK_DESCRIPTIONS[dominantV] || "";
+      const varkDetails = Object.entries(varkScores).map(([k,v]) => `• ${k}: ${v}`).join('\n');
+      const varkEmailText = `Tipe: ${dominantV}\n${varkDesc}\n\nRincian:\n${varkDetails}`;
+
+      // C. Siapkan Kepribadian
+      const personalityScores = Object.keys(scores)
+        .filter(k => k.includes('Kepribadian_'))
+        .reduce((obj, key) => { obj[key.replace('Kepribadian_', '')] = scores[key]; return obj; }, {});
+      const personalityEmailText = Object.entries(personalityScores).map(([k,v]) => `• ${k}: ${v}/20`).join('\n');
+
+      // D. Siapkan Jurusan & Medis
+      const majorsList = content.majors.split(',').map(m => m.trim());
+      const rule = DISABILITY_RULES[user.disability] || { restricted: [] };
+      const allowed = majorsList.filter(m => !rule.restricted.some(r => m.toLowerCase().includes(r.toLowerCase())));
+      const restricted = majorsList.filter(m => rule.restricted.some(r => m.toLowerCase().includes(r.toLowerCase())));
+      
+      const restrictedText = restricted.length > 0 
+        ? `\n\n[CATATAN MEDIS]: Tidak disarankan: ${restricted.join(', ')}.\nALASAN: ${rule.reason}` 
+        : '';
+
+      // E. Kirim via EmailJS
+      const templateParams = {
         to_name: user.user_name,
         to_email: user.email,
         dominant_type: content.title,
         description: content.description,
-        majors: content.majors,
+        majors: allowed.join(', ') + restrictedText,
         jobs: content.jobs,
-        my_website_link: window.location.origin,
-        // Tambahkan catatan disabilitas di email
-        disability_note: user.disability && user.disability !== 'Normal' ? `Catatan: Peserta memiliki kondisi ${user.disability}. Rekomendasi jurusan mungkin perlu penyesuaian.` : ''
-    };
+        disability_note: restrictedText ? restrictedText : '',
+        personality_result: personalityEmailText,
+        vark_result: varkEmailText,
+        my_website_link: window.location.origin, // Atau URL Vercel asli
+      };
 
-    try {
-        await emailjs.send(serviceID, templateID, templateParams, publicKey);
-        alert(`Email berhasil dikirim ulang ke ${user.email}`);
-    } catch (error) {
-        console.error("Gagal kirim:", error);
-        alert("Gagal mengirim email.");
+      await emailjs.send('service_skxbuqa', 'template_n8n5crj', templateParams, 'oTNzWCAMg-4sUC5OW');
+      alert("Email berhasil dikirim ulang!");
+
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mengirim email: " + err.message);
     } finally {
-        setSendingId(null);
+      setSendingEmailId(null);
     }
   };
 
-  // FUNGSI CSV EXPORT (Update ada kolom Disabilitas)
-  const handleExportCSV = () => {
-    if (results.length === 0) return alert("Belum ada data!");
-    const validData = results.find(r => r.scores && Object.keys(r.scores).length > 0);
-    let allScoreKeys = validData ? Object.keys(validData.scores) : [];
-    
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Tanggal,Nama,Email,NoHP,Disabilitas," + allScoreKeys.join(",") + "\n";
+  // --- 4. EXPORT EXCEL ---
+  const handleExport = () => {
+    const dataToExport = results.map(r => ({
+      Tanggal: new Date(r.created_at).toLocaleDateString(),
+      Nama: r.user_name,
+      Email: r.email,
+      NoHP: r.phone,
+      Kondisi: r.disability,
+      RIASEC_Dominan: getDominantRIASEC(r.scores),
+      VARK_Dominan: getDominantVARK(r.scores),
+      Rating_Akurasi: r.accuracy_rating || 0,
+      Feedback: r.user_feedback || '-'
+    }));
 
-    results.forEach(row => {
-      const date = new Date(row.created_at).toLocaleDateString('id-ID');
-      const scoreValues = allScoreKeys.map(key => (row.scores||{})[key] || 0).join(",");
-      csvContent += `${date},"${row.user_name}","${row.email||'-'}","${row.phone||'-'}","${row.disability||'Normal'}",${scoreValues}\n`;
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "Data_Lengkap_MinatBakat.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Hasil Tes");
+    XLSX.writeFile(wb, "Data_Responden_Lengkap.xlsx");
   };
+
+  const handleDelete = async (id) => {
+    if(!confirm("Yakin hapus data ini?")) return;
+    await supabase.from('results').delete().eq('id', id);
+    fetchData();
+  };
+
+  // Filter Search
+  const filteredData = results.filter(r => 
+    r.user_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    r.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 p-8 font-sans">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div><h1 className="text-3xl font-extrabold text-slate-800">Dashboard Admin</h1><p className="text-slate-500 mt-1">Pantau hasil tes & kelola rekomendasi.</p></div>
-          <div className="flex gap-3">
-            <Link to="/admin/recommendations" className="bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 px-5 py-3 rounded-xl font-bold shadow-sm flex items-center gap-2 transition-all"><Briefcase size={18}/> Kelola Prodi</Link>
-            <button onClick={handleExportCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 flex items-center gap-2 transition-all"><Download size={18}/> Export CSV</button>
+        
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold text-slate-800">Manajemen Hasil Tes</h1>
+            <p className="text-slate-500">Pantau hasil RIASEC, Kepribadian, dan Gaya Belajar peserta.</p>
+          </div>
+          <div className="flex gap-2">
+             <button onClick={fetchData} className="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600"><RefreshCcw size={20}/></button>
+             <button onClick={handleExport} className="px-6 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 flex items-center gap-2 shadow-lg shadow-green-200"><Download size={18}/> Export Excel</button>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[300px]">
-          {loading ? (
-            <div className="p-20 text-center text-slate-500 flex flex-col items-center justify-center h-full"><Loader2 className="animate-spin mb-4" size={32}/> <span className="font-medium">Sedang memuat data...</span></div>
-          ) : results.length === 0 ? (
-            <div className="p-20 text-center text-slate-400 flex flex-col items-center justify-center h-full"><AlertCircle size={40} className="mb-4 opacity-50"/><span>Belum ada data responden.</span></div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50/50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase">Peserta</th>
-                    <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase">Kondisi</th> {/* Kolom Baru */}
-                    <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase">Dominan</th>
-                    <th className="px-6 py-5 text-xs font-bold text-slate-400 uppercase text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {results.map((r) => {
-                    const scores = r.scores || {};
-                    let dominant = "-";
-                    if (Object.keys(scores).length > 0) {
-                        const riasecOnly = { R: scores.Realistic||0, I: scores.Investigative||0, A: scores.Artistic||0, S: scores.Social||0, E: scores.Enterprising||0, C: scores.Conventional||0 };
-                        dominant = Object.keys(riasecOnly).reduce((a, b) => riasecOnly[a] > riasecOnly[b] ? a : b);
-                    }
+        {/* SEARCH BAR */}
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 flex items-center gap-4">
+           <Search className="text-slate-400"/>
+           <input className="flex-1 outline-none text-slate-700 font-medium" placeholder="Cari nama atau email peserta..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}/>
+        </div>
 
-                    return (
-                      <tr key={r.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4">
-                          <div className="font-bold text-slate-800">{r.user_name}</div>
-                          <div className="text-xs text-slate-400 flex gap-2 mt-1"><span className="flex items-center gap-1"><Mail size={10}/> {r.email}</span></div>
-                        </td>
-                        <td className="px-6 py-4">
-                           {/* Tampilan Disabilitas */}
-                           <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${!r.disability || r.disability === 'Normal' ? 'bg-slate-100 text-slate-500' : 'bg-red-50 text-red-600 border border-red-100'}`}>
-                              {(!r.disability || r.disability === 'Normal') ? 'Normal' : <><EyeOff size={10}/> {r.disability}</>}
-                           </div>
-                        </td>
-                        <td className="px-6 py-4"><span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-100">{dominant}</span></td>
-                        <td className="px-6 py-4 text-right">
-                           <button onClick={() => handleResendEmail(r)} disabled={sendingId === r.id || dominant === "-"} className="px-3 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-lg text-xs font-bold transition flex items-center gap-2 ml-auto disabled:opacity-50">
-                              {sendingId === r.id ? <Loader2 size={14} className="animate-spin"/> : <Send size={14}/>} Resend
-                           </button>
-                        </td>
+        {/* TABLE */}
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+           {loading ? (
+              <div className="p-12 text-center text-slate-400 flex flex-col items-center gap-2"><Loader2 className="animate-spin"/> Memuat Data...</div>
+           ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                   <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs uppercase tracking-wider">
+                         <th className="p-6 font-bold">Peserta</th>
+                         <th className="p-6 font-bold">Kondisi</th>
+                         <th className="p-6 font-bold">Minat (RIASEC)</th>
+                         <th className="p-6 font-bold">Gaya Belajar (VARK)</th>
+                         <th className="p-6 font-bold text-center">Aksi</th>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                   </thead>
+                   <tbody className="text-sm text-slate-600">
+                      {filteredData.map((row) => (
+                         <React.Fragment key={row.id}>
+                            <tr className={`border-b border-slate-50 hover:bg-indigo-50/30 transition cursor-pointer ${expandedRow === row.id ? 'bg-indigo-50/50' : ''}`} onClick={() => setExpandedRow(expandedRow === row.id ? null : row.id)}>
+                               <td className="p-6">
+                                  <div className="font-bold text-slate-800">{row.user_name}</div>
+                                  <div className="text-xs text-slate-400">{row.email}</div>
+                                  <div className="text-xs text-slate-400 mt-1">{new Date(row.created_at).toLocaleDateString()}</div>
+                               </td>
+                               <td className="p-6">
+                                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${row.disability === 'Normal' ? 'bg-slate-100 text-slate-500' : 'bg-red-100 text-red-600'}`}>{row.disability}</span>
+                               </td>
+                               <td className="p-6 font-bold text-indigo-600">
+                                  {getDominantRIASEC(row.scores)}
+                               </td>
+                               <td className="p-6 font-bold text-purple-600 flex items-center gap-2">
+                                  <BookOpen size={16}/> {getDominantVARK(row.scores)}
+                               </td>
+                               <td className="p-6 text-center">
+                                  <div className="flex justify-center gap-2" onClick={(e)=>e.stopPropagation()}>
+                                     <button 
+                                        onClick={()=>handleResendEmail(row)} 
+                                        disabled={sendingEmailId === row.id}
+                                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 border border-blue-200 disabled:opacity-50" 
+                                        title="Kirim Ulang Email Lengkap"
+                                     >
+                                        {sendingEmailId === row.id ? <Loader2 size={18} className="animate-spin"/> : <Mail size={18}/>}
+                                     </button>
+                                     <button onClick={()=>handleDelete(row.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 border border-red-200" title="Hapus Data"><Trash2 size={18}/></button>
+                                     <button onClick={() => setExpandedRow(expandedRow === row.id ? null : row.id)} className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 md:hidden"><Eye size={18}/></button>
+                                  </div>
+                               </td>
+                            </tr>
+                            
+                            {/* DETAIL EXPANDED ROW (Skor Rinci) */}
+                            {expandedRow === row.id && (
+                               <tr className="bg-indigo-50/30">
+                                  <td colSpan="5" className="p-6">
+                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                           <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-widest border-b pb-2">Rincian VARK</h4>
+                                           <ul className="space-y-1 text-xs">
+                                              {['Visual','Aural','Read/Write','Kinesthetic'].map(k => (
+                                                 <li key={k} className="flex justify-between"><span>{k}</span> <span className="font-bold">{row.scores?.[k] || 0}</span></li>
+                                              ))}
+                                           </ul>
+                                        </div>
+                                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                           <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-widest border-b pb-2">Rincian Kepribadian</h4>
+                                           <ul className="space-y-1 text-xs">
+                                              {Object.keys(row.scores || {}).filter(k=>k.includes('Kepribadian')).map(k => (
+                                                 <li key={k} className="flex justify-between"><span>{k.replace('Kepribadian_', '')}</span> <span className="font-bold">{row.scores[k]}</span></li>
+                                              ))}
+                                           </ul>
+                                        </div>
+                                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                           <h4 className="font-bold text-slate-800 mb-3 text-xs uppercase tracking-widest border-b pb-2">Feedback User</h4>
+                                           <div className="flex items-center gap-1 text-amber-500 font-bold mb-1">
+                                              <span className="text-xl">{row.accuracy_rating || 0}</span> <span className="text-xs text-slate-400">/ 5 Bintang</span>
+                                           </div>
+                                           <p className="text-xs text-slate-500 italic">"{row.user_feedback || 'Tidak ada pesan.'}"</p>
+                                        </div>
+                                     </div>
+                                  </td>
+                               </tr>
+                            )}
+                         </React.Fragment>
+                      ))}
+                   </tbody>
+                </table>
+              </div>
+           )}
         </div>
       </div>
     </div>
