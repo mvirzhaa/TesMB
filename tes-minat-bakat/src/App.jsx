@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { Link } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
+import LandingPage from './LandingPage'; // IMPORT HALAMAN DEPAN
 import {
   Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ArcElement
 } from 'chart.js';
@@ -34,8 +35,7 @@ const VARK_DESCRIPTIONS = {
   'Multimodal': 'Anda memiliki gaya belajar gabungan. Anda fleksibel dan bisa beradaptasi dengan berbagai cara belajar.'
 };
 
-// --- LOGIKA GAP ANALISIS (FITUR BARU UNTUK DOSBING) ---
-// Format: Jika Minat Dominan X, tapi Skor Kepribadian Y Rendah (<13), Beri Saran Z.
+// --- LOGIKA GAP ANALISIS ---
 const GAP_ANALYSIS = {
   'Realistic': [
     { trait: 'Conscientiousness', threshold: 14, msg: "Pekerjaan teknis butuh ketelitian tinggi. Latih disiplin diri dan biasakan *double-check* pekerjaan agar tidak terjadi kecelakaan kerja atau error teknis." },
@@ -64,7 +64,9 @@ const GAP_ANALYSIS = {
 };
 
 function App() {
-  const [currentStep, setCurrentStep] = useState('intro');
+  // 1. UBAH STATE AWAL JADI 'landing'
+  const [currentStep, setCurrentStep] = useState('landing');
+  
   const [questions, setQuestions] = useState([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -278,10 +280,20 @@ function App() {
      }
   };
 
+  // --- 2. TAMPILAN LANDING PAGE ---
+  if (currentStep === 'landing') {
+    return <LandingPage onStart={() => setCurrentStep('intro')} />;
+  }
+
+  // --- 3. TAMPILAN INTRO (FORM DATA DIRI) ---
   if (currentStep === 'intro') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans relative">
-        <Link to="/login" className="absolute top-6 right-6 z-20 px-4 py-2 bg-white/50 backdrop-blur rounded-full text-slate-500 hover:text-indigo-600 border border-slate-200 text-sm font-bold flex gap-2"><Lock size={16}/> Admin</Link>
+        {/* Tombol Back ke Landing Page */}
+        <button onClick={() => setCurrentStep('landing')} className="absolute top-6 left-6 text-slate-400 hover:text-indigo-600 z-20">
+           <ArrowRight className="rotate-180" size={24}/>
+        </button>
+
         <div className="max-w-5xl w-full bg-white rounded-[2rem] shadow-xl overflow-hidden flex flex-col md:flex-row border border-slate-100 relative z-10">
            <div className="flex-1 p-8 md:p-12 flex flex-col justify-center">
               <div className="mb-8"><div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-4"><Sparkles size={14}/> Psikometri Online</div><h1 className="text-4xl font-extrabold text-slate-800 mb-2">Tes Minat & Bakat</h1><p className="text-slate-500">Temukan potensi karir, kepribadian, dan gaya belajar.</p></div>
@@ -360,7 +372,7 @@ function App() {
                     <div className="space-y-4">
                        <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100"><div className="flex items-center gap-2 mb-2"><Sparkles size={18} className="text-indigo-600"/><span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Tipe Dominan</span></div><div className="text-3xl font-black text-indigo-900 mt-1 mb-3">{content.title}</div><p className="text-sm text-slate-700 leading-relaxed mb-4">{content.description}</p><div className="text-xs font-bold text-indigo-600 bg-white p-3 rounded-xl border border-indigo-100">💡 Analisis Singkat: Anda memiliki kecenderungan kuat dalam bidang {content.title?.split(' ')[2]}. Lingkungan kerja yang {dominant === 'Realistic' ? 'praktis' : dominant === 'Social' ? 'mendukung' : 'terstruktur'} akan membuat Anda berkembang pesat.</div></div>
                        
-                       {/* FITUR GAP ANALYSIS (BARU) */}
+                       {/* FITUR GAP ANALYSIS */}
                        {myAdvice.length > 0 && (
                           <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                              <div className="flex items-center gap-2 mb-3">
@@ -387,7 +399,7 @@ function App() {
               {resultTab === 'kepribadian' && (<div className="bg-white p-8 rounded-3xl shadow-sm"><h3 className="font-bold text-center mb-6">Kepribadian (Big Five)</h3><div className="h-80"><Bar data={personalityChartData} options={{indexAxis:'y'}}/></div></div>)}
               {resultTab === 'vark' && (<div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up"><div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center justify-center"><h3 className="font-bold text-slate-700 mb-6">Distribusi Gaya Belajar</h3><div className="w-64 h-64"><Doughnut data={varkChartData}/></div></div><div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200"><div className="flex items-center gap-2 mb-4"><BookOpen className="text-purple-600" size={24}/><h3 className="font-bold text-lg text-slate-800">Gaya Belajar Anda: <span className="text-purple-600">{varkType}</span></h3></div><p className="text-slate-600 leading-relaxed mb-6 border-l-4 border-purple-200 pl-4">{varkDesc}</p><div className="space-y-3"><h4 className="text-xs font-bold text-slate-400 uppercase">Rincian Skor:</h4>{Object.entries(varkScores).map(([k, v]) => (<div key={k} className="flex items-center justify-between text-sm"><span className="font-medium text-slate-600">{k}</span><span className="font-bold text-slate-800">{v}</span></div>))}</div></div></div>)}
               
-              {/* RATING (Penting buat Validasi) */}
+              {/* RATING */}
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-6 no-print">
                  <div className="text-center">
                     <h3 className="font-bold text-slate-800 mb-2">Seberapa akurat hasil ini?</h3>
