@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './supabaseClient';
 import { Link } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
-import LandingPage from './LandingPage'; // IMPORT HALAMAN DEPAN
+import LandingPage from './LandingPage';
 import {
   Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ArcElement
 } from 'chart.js';
@@ -10,12 +10,18 @@ import { Radar, Bar, Doughnut } from 'react-chartjs-2';
 import { 
   Smile, Meh, Frown, CheckCircle, ArrowRight, RefreshCcw, 
   Loader2, User, Star, ChevronRight, Briefcase, 
-  ThumbsUp, ThumbsDown, Lock, Mail, Phone, AlertTriangle, Layout, Activity, Sparkles, BrainCircuit, GraduationCap, Download, Send, EyeOff, ShieldAlert, XCircle, Info, BookOpen, Check, Zap, TrendingUp
+  ThumbsUp, ThumbsDown, Lock, Mail, Phone, AlertTriangle, Layout, Activity, Sparkles, BrainCircuit, GraduationCap, Download, Send, EyeOff, ShieldAlert, XCircle, Info, BookOpen, Check, Zap, TrendingUp, KeyRound
 } from 'lucide-react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ArcElement);
 
 const ITEMS_PER_PAGE = 10;
+
+// --- CONFIG EMAILJS ---
+const EMAILJS_SERVICE_ID = 'service_skxbuqa'; 
+const EMAILJS_TEMPLATE_RESULT = 'template_n8n5crj'; 
+const EMAILJS_TEMPLATE_TOKEN = 'template_hn17jvm'; // <--- GANTI DENGAN ID TEMPLATE TOKEN BARU ANDA
+const EMAILJS_PUBLIC_KEY = 'oTNzWCAMg-4sUC5OW';
 
 // --- DATA LOGIKA DISABILITAS ---
 const DISABILITY_RULES = {
@@ -35,7 +41,6 @@ const VARK_DESCRIPTIONS = {
   'Multimodal': 'Anda memiliki gaya belajar gabungan. Anda fleksibel dan bisa beradaptasi dengan berbagai cara belajar.'
 };
 
-// --- LOGIKA GAP ANALISIS ---
 const GAP_ANALYSIS = {
   'Realistic': [
     { trait: 'Conscientiousness', threshold: 14, msg: "Pekerjaan teknis butuh ketelitian tinggi. Latih disiplin diri dan biasakan *double-check* pekerjaan agar tidak terjadi kecelakaan kerja atau error teknis." },
@@ -64,7 +69,6 @@ const GAP_ANALYSIS = {
 };
 
 function App() {
-  // 1. UBAH STATE AWAL JADI 'landing'
   const [currentStep, setCurrentStep] = useState('landing');
   
   const [questions, setQuestions] = useState([]);
@@ -79,6 +83,12 @@ function App() {
   const [resultId, setResultId] = useState(null);
   const [riasecContent, setRiasecContent] = useState({});
   
+  // --- STATE TOKEN BARU ---
+  const [generatedToken, setGeneratedToken] = useState('');
+  const [inputToken, setInputToken] = useState('');
+  const [tokenSent, setTokenSent] = useState(false);
+  const [isSendingToken, setIsSendingToken] = useState(false);
+
   // Rating State
   const [rating, setRating] = useState(0);
   const [feedback, setFeedback] = useState('');
@@ -137,18 +147,10 @@ function App() {
   useEffect(() => {
     if (currentStep === 'result' && !emailSentRef.current && Object.keys(riasecContent).length > 0) {
         const scores = calculateFinalScores();
-        
         const riasecScores = { Realistic: scores.Realistic||0, Investigative: scores.Investigative||0, Artistic: scores.Artistic||0, Social: scores.Social||0, Enterprising: scores.Enterprising||0, Conventional: scores.Conventional||0 };
         const dominant = Object.keys(riasecScores).reduce((a, b) => riasecScores[a] > riasecScores[b] ? a : b);
         const content = riasecContent[dominant];
-
-        const personalityScores = Object.keys(scores)
-            .filter(k => k.includes('Kepribadian_'))
-            .reduce((obj, key) => { 
-                obj[key.replace('Kepribadian_', '')] = scores[key]; 
-                return obj; 
-            }, {});
-
+        const personalityScores = Object.keys(scores).filter(k => k.includes('Kepribadian_')).reduce((obj, key) => { obj[key.replace('Kepribadian_', '')] = scores[key]; return obj; }, {});
         const varkScores = { Visual: scores.Visual||0, Aural: scores.Aural||0, 'Read/Write': scores['Read/Write']||0, Kinesthetic: scores.Kinesthetic||0 };
         const maxVark = Math.max(...Object.values(varkScores));
         const topVarks = Object.keys(varkScores).filter(k => varkScores[k] === maxVark);
@@ -163,20 +165,12 @@ function App() {
   }, [currentStep, riasecContent]);
 
   const sendEmailAuto = (content, varkType, personalityScores, varkScores) => {
-    const serviceID = 'service_skxbuqa'; 
-    const templateID = 'template_n8n5crj'; 
-    const publicKey = 'oTNzWCAMg-4sUC5OW'; 
-
     const { allowed, restricted, reason } = processMajors(content.majors, formData.disability);
     const majorsText = allowed.join(', ');
-    const restrictedText = restricted.length > 0 
-        ? `\n\n[CATATAN MEDIS PENTING]:\nBerdasarkan kondisi ${formData.disability}, jurusan berikut TIDAK DISARANKAN: ${restricted.join(', ')}.\n\nALASAN: ${reason}` 
-        : '';
-
+    const restrictedText = restricted.length > 0 ? `\n\n[CATATAN MEDIS]: Tidak disarankan: ${restricted.join(', ')}.\nALASAN: ${reason}` : '';
     const varkDesc = VARK_DESCRIPTIONS[varkType];
     const varkDetails = Object.entries(varkScores).map(([key, val]) => `• ${key}: ${val} poin`).join('\n');
     const varkEmailText = `Tipe Dominan: ${varkType}\n\n${varkDesc}\n\nRincian Skor:\n${varkDetails}`;
-
     const personalityEmailText = Object.entries(personalityScores).map(([trait, score]) => `• ${trait}: ${score}/20`).join('\n');
 
     const templateParams = {
@@ -192,7 +186,7 @@ function App() {
         my_website_link: window.location.origin,
     };
 
-    emailjs.send(serviceID, templateID, templateParams, publicKey)
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_RESULT, templateParams, EMAILJS_PUBLIC_KEY)
       .then(() => console.log('Email Sent'), (err) => console.error('Email Failed', err));
   };
 
@@ -202,9 +196,47 @@ function App() {
     if (!error) { setRatingSubmitted(true); alert("Terima kasih atas masukan Anda!"); }
   };
 
-  const handleStart = async (e) => {
+  // --- LOGIC TOKEN: KIRIM TOKEN ---
+  const handleSendToken = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim()) return alert("Data diri wajib diisi.");
+    if (!formData.name.trim() || !formData.email.trim()) return alert("Nama dan Email wajib diisi untuk menerima token.");
+    
+    setIsSendingToken(true);
+    
+    // 1. Generate Token (6 Angka)
+    const newToken = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedToken(newToken);
+
+    // 2. Kirim Email Token
+    const templateParams = {
+        to_name: formData.name,
+        to_email: formData.email,
+        token: newToken
+    };
+
+    try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_TOKEN, templateParams, EMAILJS_PUBLIC_KEY);
+        setTokenSent(true);
+        alert(`Kode Token telah dikirim ke ${formData.email}. Silakan cek Inbox/Spam.`);
+    } catch (error) {
+        console.error("Gagal kirim token:", error);
+        alert("Gagal mengirim token. Pastikan email benar atau koneksi stabil.");
+    }
+    
+    setIsSendingToken(false);
+  };
+
+  // --- LOGIC TOKEN: VERIFIKASI ---
+  const handleVerifyAndStart = async () => {
+    if (inputToken !== generatedToken) {
+        alert("Token Salah! Silakan cek email Anda lagi.");
+        return;
+    }
+    // Jika benar, jalankan logika start yang asli
+    await handleStartLogic();
+  };
+
+  const handleStartLogic = async () => {
     setIsLoading(true);
 
     const { data: qData, error: qError } = await supabase.from('questions').select('*').order('id', { ascending: true });
@@ -255,7 +287,6 @@ function App() {
 
   const renderQuestionCard = (q, globalIndex, myAnswer) => {
      const scaleOptions = [{v:1, i:<Frown/>, l:'Sangat Tidak', c:'text-rose-500 bg-rose-50 border-rose-200'}, {v:2, i:<Frown/>, l:'Tidak Suka', c:'text-orange-500 bg-orange-50 border-orange-200'}, {v:3, i:<Meh/>, l:'Netral', c:'text-amber-500 bg-amber-50 border-amber-200'}, {v:4, i:<Smile/>, l:'Suka', c:'text-emerald-500 bg-emerald-50 border-emerald-200'}, {v:5, i:<Smile/>, l:'Sangat Suka', c:'text-teal-600 bg-teal-50 border-teal-200'}];
-     
      switch(q.type) {
         case 'scale': return (<div className="grid grid-cols-5 gap-2 mt-4">{scaleOptions.map(o => (<button key={o.v} onClick={()=>handleAnswer(globalIndex,o.v,q.category_main)} className={`flex flex-col items-center justify-center p-3 rounded-xl border ${myAnswer?.weight===o.v?`${o.c} border-2 shadow-md scale-105`:'border-slate-100 text-slate-300'}`}>{React.cloneElement(o.i,{size:24})}</button>))}</div>);
         case 'star': return (<div className="flex justify-center gap-3 py-6 bg-slate-50 rounded-xl mt-4">{[1,2,3,4,5].map(v=>(<button key={v} onClick={()=>handleAnswer(globalIndex,v,q.category_main)}><Star size={38} fill={myAnswer?.weight>=v?"currentColor":"none"} className={myAnswer?.weight>=v?"text-amber-400":"text-slate-200"}/></button>))}</div>);
@@ -280,32 +311,59 @@ function App() {
      }
   };
 
-  // --- 2. TAMPILAN LANDING PAGE ---
   if (currentStep === 'landing') {
     return <LandingPage onStart={() => setCurrentStep('intro')} />;
   }
 
-  // --- 3. TAMPILAN INTRO (FORM DATA DIRI) ---
   if (currentStep === 'intro') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans relative">
-        {/* Tombol Back ke Landing Page */}
-        <button onClick={() => setCurrentStep('landing')} className="absolute top-6 left-6 text-slate-400 hover:text-indigo-600 z-20">
-           <ArrowRight className="rotate-180" size={24}/>
-        </button>
-
+        <button onClick={() => setCurrentStep('landing')} className="absolute top-6 left-6 text-slate-400 hover:text-indigo-600 z-20"><ArrowRight className="rotate-180" size={24}/></button>
         <div className="max-w-5xl w-full bg-white rounded-[2rem] shadow-xl overflow-hidden flex flex-col md:flex-row border border-slate-100 relative z-10">
            <div className="flex-1 p-8 md:p-12 flex flex-col justify-center">
-              <div className="mb-8"><div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-4"><Sparkles size={14}/> Psikometri Online</div><h1 className="text-4xl font-extrabold text-slate-800 mb-2">Tes Minat & Bakat</h1><p className="text-slate-500">Temukan potensi karir, kepribadian, dan gaya belajar.</p></div>
-              <form onSubmit={handleStart} className="space-y-4">
-                 <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Nama Lengkap" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})}/>
-                 <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Email" value={formData.email} onChange={e=>setFormData({...formData, email:e.target.value})}/>
-                 <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="No WhatsApp" value={formData.phone} onChange={e=>setFormData({...formData, phone:e.target.value})}/>
-                 <div className="relative group"><div className="absolute left-4 top-3.5 text-slate-400"><EyeOff size={18}/></div><select className="w-full pl-11 p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700 appearance-none cursor-pointer" value={formData.disability} onChange={e => setFormData({...formData, disability: e.target.value})}>{Object.keys(DISABILITY_RULES).map(k => (<option key={k} value={k}>{k === 'Normal' ? 'Tidak Ada Disabilitas / Normal' : k}</option>))}</select></div>
-                 <button className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg flex justify-center items-center gap-2 mt-2">{isLoading ? <Loader2 className="animate-spin"/> : <>Mulai Tes <ArrowRight size={18}/></>}</button>
-              </form>
+              <div className="mb-8"><div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-4"><Sparkles size={14}/> Verifikasi Peserta</div><h1 className="text-4xl font-extrabold text-slate-800 mb-2">Identitas & Token</h1><p className="text-slate-500">Kami perlu memverifikasi email Anda sebelum memulai tes.</p></div>
+              
+              <div className="space-y-4">
+                 {/* FORM IDENTITAS */}
+                 <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Nama Lengkap" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})} disabled={tokenSent} />
+                 <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Email Aktif" value={formData.email} onChange={e=>setFormData({...formData, email:e.target.value})} disabled={tokenSent} />
+                 <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="No WhatsApp" value={formData.phone} onChange={e=>setFormData({...formData, phone:e.target.value})} disabled={tokenSent} />
+                 <div className="relative group">
+                    <div className="absolute left-4 top-3.5 text-slate-400"><EyeOff size={18}/></div>
+                    <select className="w-full pl-11 p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium text-slate-700 appearance-none cursor-pointer" value={formData.disability} onChange={e => setFormData({...formData, disability: e.target.value})} disabled={tokenSent}>
+                        {Object.keys(DISABILITY_RULES).map(k => (<option key={k} value={k}>{k === 'Normal' ? 'Tidak Ada Disabilitas / Normal' : k}</option>))}
+                    </select>
+                 </div>
+
+                 {/* LOGIKA TOMBOL TOKEN / VERIFIKASI */}
+                 {!tokenSent ? (
+                    <button onClick={handleSendToken} disabled={isSendingToken} className="w-full py-4 bg-slate-800 text-white font-bold rounded-xl shadow-lg flex justify-center items-center gap-2 hover:bg-slate-900 transition">
+                       {isSendingToken ? <Loader2 className="animate-spin"/> : <>Kirim Kode Token <KeyRound size={18}/></>}
+                    </button>
+                 ) : (
+                    <div className="animate-fade-in-up space-y-4 pt-4 border-t border-slate-100">
+                        <div className="p-4 bg-green-50 text-green-700 rounded-xl text-sm flex items-center gap-2 border border-green-100">
+                            <CheckCircle size={16}/> Token dikirim ke {formData.email}
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500 uppercase ml-1">Masukkan Token</label>
+                            <input 
+                                className="w-full p-4 text-center text-2xl tracking-[0.5em] font-bold bg-white border-2 border-indigo-100 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all text-indigo-600" 
+                                placeholder="000000" 
+                                maxLength={6}
+                                value={inputToken}
+                                onChange={(e) => setInputToken(e.target.value)}
+                            />
+                        </div>
+                        <button onClick={handleVerifyAndStart} className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg flex justify-center items-center gap-2 hover:bg-indigo-700 transition">
+                           {isLoading ? <Loader2 className="animate-spin"/> : <>Verifikasi & Mulai <ArrowRight size={18}/></>}
+                        </button>
+                        <button onClick={() => setTokenSent(false)} className="w-full text-xs text-slate-400 hover:text-indigo-600 font-bold underline">Salah email? Kirim ulang.</button>
+                    </div>
+                 )}
+              </div>
            </div>
-           <div className="flex-1 bg-indigo-900 text-white p-8 md:p-12 flex flex-col justify-center relative overflow-hidden"><h3 className="text-xl font-bold mb-6 flex items-center gap-2"><AlertTriangle className="text-yellow-400"/> Petunjuk</h3><ul className="space-y-4 text-sm text-indigo-100"><li>• 138 Soal.</li><li>• Jawab Jujur.</li><li>• Kondisi fisik berpengaruh pada rekomendasi jurusan.</li></ul><div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full mix-blend-overlay filter blur-[50px] opacity-50"></div></div>
+           <div className="flex-1 bg-indigo-900 text-white p-8 md:p-12 flex flex-col justify-center relative overflow-hidden"><h3 className="text-xl font-bold mb-6 flex items-center gap-2"><AlertTriangle className="text-yellow-400"/> Petunjuk</h3><ul className="space-y-4 text-sm text-indigo-100"><li>• Pastikan Email Aktif untuk Token.</li><li>• Jawab Jujur 138 Soal.</li><li>• Kondisi fisik berpengaruh pada rekomendasi jurusan.</li></ul><div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full mix-blend-overlay filter blur-[50px] opacity-50"></div></div>
         </div>
       </div>
     );
@@ -344,10 +402,9 @@ function App() {
      const varkChartData = { labels: Object.keys(varkScores), datasets: [{ label: 'Skor', data: Object.values(varkScores), backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'], borderWidth: 0 }] };
      const { allowed, restricted, reason } = processMajors(content.majors, formData.disability);
 
-     // --- HITUNG GAP ANALYSIS (ADVICE) ---
      const myAdvice = GAP_ANALYSIS[dominant]?.filter(rule => {
         const score = scores['Kepribadian_' + rule.trait] || 0;
-        return score < rule.threshold; // Munculkan saran jika skor di bawah ambang batas
+        return score < rule.threshold; 
      }) || [];
 
      return (
@@ -359,38 +416,23 @@ function App() {
                  <div className="mt-2 text-xs font-bold px-3 py-1 bg-slate-100 rounded-full inline-block text-slate-500">Kondisi: {formData.disability}</div>
                  {emailSent && <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-200"><CheckCircle size={14}/> Laporan dikirim ke {formData.email}</div>}
               </div>
-              
               <div className="flex flex-wrap justify-center gap-2 bg-white p-1.5 rounded-xl shadow-sm w-fit mx-auto no-print">
                  <button onClick={()=>setResultTab('minat')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='minat'?'bg-indigo-600 text-white':'text-slate-500'}`}>Minat Karir</button>
                  <button onClick={()=>setResultTab('kepribadian')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='kepribadian'?'bg-pink-600 text-white':'text-slate-500'}`}>Kepribadian</button>
                  <button onClick={()=>setResultTab('vark')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='vark'?'bg-purple-600 text-white':'text-slate-500'}`}>Gaya Belajar</button>
               </div>
-
               {resultTab === 'minat' && (
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up">
                     <div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center"><h3 className="font-bold mb-6">Peta Minat</h3><div className="w-full max-w-xs"><Radar data={riasecChartData}/></div></div>
                     <div className="space-y-4">
                        <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100"><div className="flex items-center gap-2 mb-2"><Sparkles size={18} className="text-indigo-600"/><span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Tipe Dominan</span></div><div className="text-3xl font-black text-indigo-900 mt-1 mb-3">{content.title}</div><p className="text-sm text-slate-700 leading-relaxed mb-4">{content.description}</p><div className="text-xs font-bold text-indigo-600 bg-white p-3 rounded-xl border border-indigo-100">💡 Analisis Singkat: Anda memiliki kecenderungan kuat dalam bidang {content.title?.split(' ')[2]}. Lingkungan kerja yang {dominant === 'Realistic' ? 'praktis' : dominant === 'Social' ? 'mendukung' : 'terstruktur'} akan membuat Anda berkembang pesat.</div></div>
-                       
-                       {/* FITUR GAP ANALYSIS */}
                        {myAdvice.length > 0 && (
                           <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
-                             <div className="flex items-center gap-2 mb-3">
-                                <Zap className="text-amber-500" size={20}/>
-                                <h4 className="font-bold text-amber-800">Rekomendasi Pengembangan Diri</h4>
-                             </div>
+                             <div className="flex items-center gap-2 mb-3"><Zap className="text-amber-500" size={20}/><h4 className="font-bold text-amber-800">Rekomendasi Pengembangan Diri</h4></div>
                              <p className="text-xs text-amber-700 mb-3">Berdasarkan profil kepribadian Anda, berikut adalah area yang perlu dilatih agar sukses di karir {dominant}:</p>
-                             <ul className="space-y-3">
-                                {myAdvice.map((adv, i) => (
-                                   <li key={i} className="flex gap-3 bg-white p-3 rounded-xl border border-amber-100">
-                                      <TrendingUp className="text-amber-400 shrink-0" size={18}/>
-                                      <span className="text-sm text-slate-600 font-medium">{adv.msg}</span>
-                                   </li>
-                                ))}
-                             </ul>
+                             <ul className="space-y-3">{myAdvice.map((adv, i) => (<li key={i} className="flex gap-3 bg-white p-3 rounded-xl border border-amber-100"><TrendingUp className="text-amber-400 shrink-0" size={18}/><span className="text-sm text-slate-600 font-medium">{adv.msg}</span></li>))}</ul>
                           </div>
                        )}
-
                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><h4 className="font-bold text-slate-800 mb-4 flex gap-2"><GraduationCap className="text-pink-500"/> Program Studi</h4><div className="mb-4"><div className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1"><CheckCircle size={12}/> Sangat Direkomendasikan</div><div className="flex flex-wrap gap-2">{allowed.length > 0 ? allowed.map((m,i)=>(<span key={i} className="px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded-lg text-xs font-bold">{m}</span>)) : <span className="text-xs text-slate-400">Tidak ada data.</span>}</div></div>{restricted.length > 0 && (<div className="pt-4 border-t border-slate-100"><div className="text-xs font-bold text-red-500 mb-2 flex items-center gap-1"><XCircle size={12}/> Tidak Disarankan (Kondisi: {formData.disability})</div><div className="flex flex-wrap gap-2 mb-3">{restricted.map((m,i)=>(<span key={i} className="px-3 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-bold line-through opacity-70">{m}</span>))}</div><div className="p-3 bg-red-50 rounded-xl border border-red-100 text-xs text-red-700 leading-relaxed flex gap-2"><Info size={16} className="shrink-0 mt-0.5"/><span><strong>Kenapa jurusan di atas tidak dianjurkan?</strong><br/>{reason}</span></div></div>)}</div>
                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><h4 className="font-bold text-slate-800 mb-3 flex gap-2"><Briefcase className="text-blue-500"/> Karir</h4><div className="flex flex-wrap gap-2">{content.jobs?.split(',').map((j,i)=><span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-100">{j.trim()}</span>)}</div></div>
                     </div>
@@ -398,16 +440,7 @@ function App() {
               )}
               {resultTab === 'kepribadian' && (<div className="bg-white p-8 rounded-3xl shadow-sm"><h3 className="font-bold text-center mb-6">Kepribadian (Big Five)</h3><div className="h-80"><Bar data={personalityChartData} options={{indexAxis:'y'}}/></div></div>)}
               {resultTab === 'vark' && (<div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up"><div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center justify-center"><h3 className="font-bold text-slate-700 mb-6">Distribusi Gaya Belajar</h3><div className="w-64 h-64"><Doughnut data={varkChartData}/></div></div><div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200"><div className="flex items-center gap-2 mb-4"><BookOpen className="text-purple-600" size={24}/><h3 className="font-bold text-lg text-slate-800">Gaya Belajar Anda: <span className="text-purple-600">{varkType}</span></h3></div><p className="text-slate-600 leading-relaxed mb-6 border-l-4 border-purple-200 pl-4">{varkDesc}</p><div className="space-y-3"><h4 className="text-xs font-bold text-slate-400 uppercase">Rincian Skor:</h4>{Object.entries(varkScores).map(([k, v]) => (<div key={k} className="flex items-center justify-between text-sm"><span className="font-medium text-slate-600">{k}</span><span className="font-bold text-slate-800">{v}</span></div>))}</div></div></div>)}
-              
-              {/* RATING */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-6 no-print">
-                 <div className="text-center">
-                    <h3 className="font-bold text-slate-800 mb-2">Seberapa akurat hasil ini?</h3>
-                    <p className="text-sm text-slate-500 mb-4">Bantu kami meningkatkan kualitas sistem.</p>
-                    {!ratingSubmitted ? (<div className="space-y-4"><div className="flex justify-center gap-2">{[1, 2, 3, 4, 5].map((star) => (<button key={star} onClick={() => setRating(star)} className={`transition-all transform hover:scale-110 ${rating >= star ? 'text-amber-400' : 'text-slate-200'}`}><Star size={32} fill={rating >= star ? "currentColor" : "none"} strokeWidth={rating >= star ? 0 : 2}/></button>))}</div>{rating > 0 && (<div className="animate-fade-in-up"><textarea className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Masukan tambahan..." rows="2" value={feedback} onChange={(e) => setFeedback(e.target.value)}/><button onClick={submitRating} className="mt-2 px-6 py-2 bg-slate-800 text-white text-sm font-bold rounded-lg hover:bg-slate-900 transition w-full md:w-auto">Kirim</button></div>)}</div>) : (<div className="p-4 bg-green-50 text-green-700 rounded-xl border border-green-100 flex items-center justify-center gap-2 font-bold animate-pulse"><CheckCircle size={20}/> Masukan tersimpan.</div>)}
-                 </div>
-              </div>
-
+              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-6 no-print"><div className="text-center"><h3 className="font-bold text-slate-800 mb-2">Seberapa akurat hasil ini?</h3><p className="text-sm text-slate-500 mb-4">Bantu kami meningkatkan kualitas sistem.</p>{!ratingSubmitted ? (<div className="space-y-4"><div className="flex justify-center gap-2">{[1, 2, 3, 4, 5].map((star) => (<button key={star} onClick={() => setRating(star)} className={`transition-all transform hover:scale-110 ${rating >= star ? 'text-amber-400' : 'text-slate-200'}`}><Star size={32} fill={rating >= star ? "currentColor" : "none"} strokeWidth={rating >= star ? 0 : 2}/></button>))}</div>{rating > 0 && (<div className="animate-fade-in-up"><textarea className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Masukan tambahan..." rows="2" value={feedback} onChange={(e) => setFeedback(e.target.value)}/><button onClick={submitRating} className="mt-2 px-6 py-2 bg-slate-800 text-white text-sm font-bold rounded-lg hover:bg-slate-900 transition w-full md:w-auto">Kirim</button></div>)}</div>) : (<div className="p-4 bg-green-50 text-green-700 rounded-xl border border-green-100 flex items-center justify-center gap-2 font-bold animate-pulse"><CheckCircle size={20}/> Masukan tersimpan.</div>)}</div></div>
               <div className="text-center pt-8 pb-20 flex justify-center gap-4 no-print"><button onClick={()=>window.print()} className="px-6 py-3 bg-white border-2 border-indigo-100 text-indigo-700 rounded-xl font-bold hover:bg-indigo-50 flex items-center gap-2"><Download size={18}/> Simpan PDF</button><button onClick={()=>window.location.reload()} className="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 flex items-center gap-2"><RefreshCcw size={18}/> Selesai</button></div>
            </div>
         </div>
