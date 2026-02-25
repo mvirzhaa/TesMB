@@ -10,7 +10,7 @@ import { Radar, Bar, Doughnut } from 'react-chartjs-2';
 import { 
   Smile, Meh, Frown, CheckCircle, ArrowRight, RefreshCcw, 
   Loader2, User, Star, ChevronRight, Briefcase, 
-  ThumbsUp, ThumbsDown, Lock, Mail, Phone, AlertTriangle, Layout, Activity, Sparkles, BrainCircuit, GraduationCap, Download, Send, EyeOff, ShieldAlert, XCircle, Info, BookOpen, Check, Zap, TrendingUp, KeyRound
+  ThumbsUp, ThumbsDown, Lock, Mail, Phone, AlertTriangle, Layout, Activity, Sparkles, BrainCircuit, GraduationCap, Download, Send, EyeOff, ShieldAlert, XCircle, Info, BookOpen, Check, Zap, TrendingUp, KeyRound, HelpCircle
 } from 'lucide-react';
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, CategoryScale, LinearScale, BarElement, ArcElement);
@@ -20,7 +20,7 @@ const ITEMS_PER_PAGE = 10;
 // --- CONFIG EMAILJS ---
 const EMAILJS_SERVICE_ID = 'service_skxbuqa'; 
 const EMAILJS_TEMPLATE_RESULT = 'template_n8n5crj'; 
-const EMAILJS_TEMPLATE_TOKEN = 'template_hn17jvm'; // <--- GANTI DENGAN ID TEMPLATE TOKEN BARU ANDA
+const EMAILJS_TEMPLATE_TOKEN = 'template_hn17jvm'; 
 const EMAILJS_PUBLIC_KEY = 'oTNzWCAMg-4sUC5OW';
 
 // --- DATA LOGIKA DISABILITAS ---
@@ -39,6 +39,36 @@ const VARK_DESCRIPTIONS = {
   'Read/Write': 'Anda belajar paling baik dengan membaca dan menulis. Daftar, catatan, dan buku teks adalah cara favorit Anda.',
   'Kinesthetic': 'Anda belajar paling baik dengan melakukan (praktek). Pengalaman langsung dan simulasi lebih mudah Anda pahami.',
   'Multimodal': 'Anda memiliki gaya belajar gabungan. Anda fleksibel dan bisa beradaptasi dengan berbagai cara belajar.'
+};
+
+// --- DATA DESKRIPSI BIG FIVE ---
+const BIG_FIVE_DESC = {
+  'Openness': 'Keterbukaan. Skor tinggi: Imajinatif, kreatif, suka mencoba hal baru. Skor rendah: Praktis, lebih suka rutinitas.',
+  'Conscientiousness': 'Kehati-hatian. Skor tinggi: Disiplin, teratur, terencana. Skor rendah: Spontan, kurang terstruktur.',
+  'Extraversion': 'Ekstraversi. Skor tinggi: Suka bersosialisasi, asertif, energik. Skor rendah (Introvert): Lebih suka ketenangan, menyendiri.',
+  'Agreeableness': 'Keramahan. Skor tinggi: Empatik, kooperatif, suka membantu. Skor rendah: Kompetitif, kritis.',
+  'Neuroticism': 'Stabilitas Emosi. Skor tinggi: Sensitif, mudah cemas/stres. Skor rendah: Tenang, stabil, tahan tekanan.'
+};
+
+// --- DATA DESKRIPSI MBTI (DIPERBARUI & LEBIH DETAIL) ---
+const MBTI_DESC = {
+  'INTJ': { title: 'Arsitek (The Architect)', desc: 'Pemikir imajinatif dan strategis, selalu punya rencana untuk segala hal. Sangat analitis dan rasional, mengandalkan logika dalam memecahkan masalah kompleks.' },
+  'INTP': { title: 'Ahli Logika (The Logician)', desc: 'Penemu inovatif dengan rasa ingin tahu yang tidak ada habisnya. Senang menganalisis pola, membaca teori, dan menemukan solusi non-konvensional.' },
+  'ENTJ': { title: 'Komandan (The Commander)', desc: 'Pemimpin yang berani, imajinatif, dan berkemauan kuat. Selalu menemukan cara atau menciptakan jalan baru untuk mencapai tujuan bersama.' },
+  'ENTP': { title: 'Pendebat (The Debater)', desc: 'Pemikir cerdas dan penasaran yang tidak bisa menahan tantangan intelektual. Sangat suka berdebat ide untuk menguji batasan.' },
+  'INFJ': { title: 'Advokat (The Advocate)', desc: 'Idealis yang pendiam namun sangat menginspirasi. Memiliki prinsip yang teguh, pandangan ke depan, dan peduli secara mendalam pada orang lain.' },
+  'INFP': { title: 'Mediator (The Mediator)', desc: 'Orang yang puitis, baik hati, dan altruistik, selalu ingin membantu tujuan yang baik. Sangat empatik dan dipandu oleh nilai-nilai batin.' },
+  'ENFJ': { title: 'Protagonis (The Protagonist)', desc: 'Pemimpin karismatik dan inspiratif, mampu memikat pendengarnya. Punya dorongan alami untuk membantu orang lain berkembang mencapai potensinya.' },
+  'ENFP': { title: 'Juru Kampanye (The Campaigner)', desc: 'Jiwa bebas yang antusias, kreatif, dan ramah. Selalu menemukan alasan untuk tersenyum dan sangat pandai melihat potensi dalam diri orang lain.' },
+  'ISTJ': { title: 'Ahli Logistik (The Logistician)', desc: 'Individu praktis dan sangat mengutamakan fakta. Keandalannya tidak dapat diragukan, sangat terstruktur, sistematis, dan memegang tradisi.' },
+  'ISFJ': { title: 'Pembela (The Defender)', desc: 'Pelindung yang sangat berdedikasi dan hangat, selalu siap membela orang yang dicintainya. Penuh perhatian, suportif, dan sangat teliti.' },
+  'ESTJ': { title: 'Eksekutif (The Executive)', desc: 'Administrator luar biasa yang pandai mengelola sesuatu dan orang lain. Sangat menghargai aturan, efisiensi, standar tinggi, dan kejelasan.' },
+  'ESFJ': { title: 'Konsul (The Consul)', desc: 'Orang yang luar biasa peduli, sosial, dan populer. Selalu ingin membantu, memastikan keharmonisan grup, dan menyediakan dukungan praktis.' },
+  'ISTP': { title: 'Pengrajin (The Virtuoso)', desc: 'Eksperimentator yang berani dan praktis. Pandai menggunakan semua jenis alat, fleksibel, dan terampil memecahkan masalah mekanis secara efisien.' },
+  'ISFP': { title: 'Petualang (The Adventurer)', desc: 'Seniman fleksibel dan menawan, selalu siap untuk mengeksplorasi dan mengalami hal baru. Sangat sensitif, estetis, dan sangat menikmati masa kini.' },
+  'ESTP': { title: 'Pengusaha (The Entrepreneur)', desc: 'Orang yang cerdas, energik, dan perseptif, yang benar-benar menikmati hidup penuh aksi. Bertindak cepat dalam krisis dan sangat adaptif.' },
+  'ESFP': { title: 'Penghibur (The Entertainer)', desc: 'Orang yang spontan, antusias, dan menghargai kesenangan. Sangat menikmati sorotan sosial dan memastikan hidup tidak akan pernah membosankan di sekitar mereka.' },
+  '-': { title: 'Belum Ada Data', desc: 'Silakan isi bagian soal MBTI untuk melihat hasil kepribadian Anda.' }
 };
 
 const GAP_ANALYSIS = {
@@ -83,7 +113,7 @@ function App() {
   const [resultId, setResultId] = useState(null);
   const [riasecContent, setRiasecContent] = useState({});
   
-  // --- STATE TOKEN BARU ---
+  // --- STATE TOKEN ---
   const [generatedToken, setGeneratedToken] = useState('');
   const [inputToken, setInputToken] = useState('');
   const [tokenSent, setTokenSent] = useState(false);
@@ -114,6 +144,8 @@ function App() {
     const scores = {}; 
     ['Realistic','Investigative','Artistic','Social','Enterprising','Conventional'].forEach(k => scores[k] = 0);
     ['Visual', 'Aural', 'Read/Write', 'Kinesthetic'].forEach(k => scores[k] = 0);
+    ['MBTI_E','MBTI_I','MBTI_S','MBTI_N','MBTI_T','MBTI_F','MBTI_J','MBTI_P'].forEach(k => scores[k] = 0);
+    
     Object.values(userAnswers).forEach(ans => {
       if (ans.category) {
         if (scores[ans.category] === undefined) scores[ans.category] = 0;
@@ -121,6 +153,16 @@ function App() {
       }
     });
     return scores;
+  };
+
+  const calculateMBTIType = (scores) => {
+    const E = scores['MBTI_E'] || 0; const I = scores['MBTI_I'] || 0;
+    const S = scores['MBTI_S'] || 0; const N = scores['MBTI_N'] || 0;
+    const T = scores['MBTI_T'] || 0; const F = scores['MBTI_F'] || 0;
+    const J = scores['MBTI_J'] || 0; const P = scores['MBTI_P'] || 0;
+
+    if (E+I+S+N+T+F+J+P === 0) return "-";
+    return `${E>=I?'E':'I'}${S>=N?'S':'N'}${T>=F?'T':'F'}${J>=P?'J':'P'}`;
   };
 
   const saveProgress = async (nextPage) => {
@@ -131,17 +173,16 @@ function App() {
   };
 
   const processMajors = (majorsString, disabilityType) => {
-      if (!majorsString) return { allowed: [], restricted: [], reason: "" };
-      const rule = DISABILITY_RULES[disabilityType] || { restricted: [] };
+      if (!majorsString) return { allMajors: [], restricted: [], reason: "" };
+      const rule = DISABILITY_RULES[disabilityType] || { restricted: [], reason: "" };
       const restrictedKeywords = rule.restricted;
       const allMajors = majorsString.split(',').map(m => m.trim());
-      const allowed = [];
       const restricted = [];
       allMajors.forEach(major => {
           const isRestricted = restrictedKeywords.some(keyword => major.toLowerCase().includes(keyword.toLowerCase()));
-          if (isRestricted) restricted.push(major); else allowed.push(major);
+          if (isRestricted) restricted.push(major);
       });
-      return { allowed, restricted, reason: rule.reason };
+      return { allMajors, restricted, reason: rule.reason };
   };
 
   useEffect(() => {
@@ -155,23 +196,26 @@ function App() {
         const maxVark = Math.max(...Object.values(varkScores));
         const topVarks = Object.keys(varkScores).filter(k => varkScores[k] === maxVark);
         const varkType = topVarks.length > 1 ? 'Multimodal' : topVarks[0];
+        const mbtiType = calculateMBTIType(scores);
 
         if (content) {
-            sendEmailAuto(content, varkType, personalityScores, varkScores);
+            sendEmailAuto(content, varkType, personalityScores, varkScores, mbtiType);
             emailSentRef.current = true;
             setEmailSent(true);
         }
     }
   }, [currentStep, riasecContent]);
 
-  const sendEmailAuto = (content, varkType, personalityScores, varkScores) => {
-    const { allowed, restricted, reason } = processMajors(content.majors, formData.disability);
+  const sendEmailAuto = (content, varkType, personalityScores, varkScores, mbtiType) => {
+    const { allMajors, restricted, reason } = processMajors(content.majors, formData.disability);
+    const allowed = allMajors.filter(m => !restricted.includes(m));
+    
     const majorsText = allowed.join(', ');
     const restrictedText = restricted.length > 0 ? `\n\n[CATATAN MEDIS]: Tidak disarankan: ${restricted.join(', ')}.\nALASAN: ${reason}` : '';
     const varkDesc = VARK_DESCRIPTIONS[varkType];
     const varkDetails = Object.entries(varkScores).map(([key, val]) => `• ${key}: ${val} poin`).join('\n');
     const varkEmailText = `Tipe Dominan: ${varkType}\n\n${varkDesc}\n\nRincian Skor:\n${varkDetails}`;
-    const personalityEmailText = Object.entries(personalityScores).map(([trait, score]) => `• ${trait}: ${score}/20`).join('\n');
+    const personalityEmailText = Object.entries(personalityScores).map(([trait, score]) => `• ${trait}: ${score}/20`).join('\n') + `\n\nMBTI Tipe: ${mbtiType} - ${MBTI_DESC[mbtiType]?.title || ''}`;
 
     const templateParams = {
         to_name: formData.name,
@@ -196,18 +240,14 @@ function App() {
     if (!error) { setRatingSubmitted(true); alert("Terima kasih atas masukan Anda!"); }
   };
 
-  // --- LOGIC TOKEN: KIRIM TOKEN ---
   const handleSendToken = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.email.trim()) return alert("Nama dan Email wajib diisi untuk menerima token.");
     
     setIsSendingToken(true);
-    
-    // 1. Generate Token (6 Angka)
     const newToken = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedToken(newToken);
 
-    // 2. Kirim Email Token
     const templateParams = {
         to_name: formData.name,
         to_email: formData.email,
@@ -222,30 +262,26 @@ function App() {
         console.error("Gagal kirim token:", error);
         alert("Gagal mengirim token. Pastikan email benar atau koneksi stabil.");
     }
-    
     setIsSendingToken(false);
   };
 
-  // --- LOGIC TOKEN: VERIFIKASI ---
   const handleVerifyAndStart = async () => {
     if (inputToken !== generatedToken) {
         alert("Token Salah! Silakan cek email Anda lagi.");
         return;
     }
-    // Jika benar, jalankan logika start yang asli
     await handleStartLogic();
   };
 
   const handleStartLogic = async () => {
     setIsLoading(true);
-
     const { data: qData, error: qError } = await supabase.from('questions').select('*').order('id', { ascending: true });
     if (qError || !qData) { alert("Gagal memuat soal."); setIsLoading(false); return; }
     
     setQuestions(qData);
-    
     const { data: lastResult } = await supabase.from('results').select('*').eq('email', formData.email).order('updated_at', { ascending: false }).limit(1).single();
     let resumeData = null;
+    
     if (lastResult) {
         const totalPages = Math.ceil(qData.length / ITEMS_PER_PAGE);
         if ((lastResult.last_page || 0) < (totalPages - 1)) {
@@ -324,7 +360,6 @@ function App() {
               <div className="mb-8"><div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-4"><Sparkles size={14}/> Verifikasi Peserta</div><h1 className="text-4xl font-extrabold text-slate-800 mb-2">Identitas & Token</h1><p className="text-slate-500">Kami perlu memverifikasi email Anda sebelum memulai tes.</p></div>
               
               <div className="space-y-4">
-                 {/* FORM IDENTITAS */}
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Nama Lengkap" value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})} disabled={tokenSent} />
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Email Aktif" value={formData.email} onChange={e=>setFormData({...formData, email:e.target.value})} disabled={tokenSent} />
                  <input className="w-full pl-4 p-3.5 bg-slate-50 border border-slate-200 rounded-xl" placeholder="No WhatsApp" value={formData.phone} onChange={e=>setFormData({...formData, phone:e.target.value})} disabled={tokenSent} />
@@ -335,7 +370,6 @@ function App() {
                     </select>
                  </div>
 
-                 {/* LOGIKA TOMBOL TOKEN / VERIFIKASI */}
                  {!tokenSent ? (
                     <button onClick={handleSendToken} disabled={isSendingToken} className="w-full py-4 bg-slate-800 text-white font-bold rounded-xl shadow-lg flex justify-center items-center gap-2 hover:bg-slate-900 transition">
                        {isSendingToken ? <Loader2 className="animate-spin"/> : <>Kirim Kode Token <KeyRound size={18}/></>}
@@ -363,7 +397,28 @@ function App() {
                  )}
               </div>
            </div>
-           <div className="flex-1 bg-indigo-900 text-white p-8 md:p-12 flex flex-col justify-center relative overflow-hidden"><h3 className="text-xl font-bold mb-6 flex items-center gap-2"><AlertTriangle className="text-yellow-400"/> Petunjuk</h3><ul className="space-y-4 text-sm text-indigo-100"><li>• Pastikan Email Aktif untuk Token.</li><li>• Jawab Jujur 138 Soal.</li><li>• Kondisi fisik berpengaruh pada rekomendasi jurusan.</li></ul><div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full mix-blend-overlay filter blur-[50px] opacity-50"></div></div>
+           <div className="flex-1 bg-indigo-900 text-white p-8 md:p-12 flex flex-col justify-center relative overflow-hidden">
+              <h3 className="text-xl font-bold mb-6 flex items-center gap-2"><Info className="text-blue-400"/> Panduan Asesmen</h3>
+              <ul className="space-y-5 text-sm text-indigo-100 leading-relaxed">
+                 <li className="flex gap-3">
+                    <span className="text-indigo-400 mt-0.5 font-black">•</span>
+                    <span><strong>Struktur Tes:</strong> Asesmen ini terdiri dari 4 instrumen utama: <strong>RIASEC</strong> (90 soal), <strong>Big Five</strong> (44 soal), <strong>VARK</strong> (16 soal), dan <strong>MBTI</strong> (16 soal).</span>
+                 </li>
+                 <li className="flex gap-3">
+                    <span className="text-indigo-400 mt-0.5 font-black">•</span>
+                    <span><strong>Tanpa Benar/Salah:</strong> Tidak ada jawaban yang salah. Jawablah secara spontan, jujur, dan paling mencerminkan diri Anda saat ini demi akurasi hasil analisis.</span>
+                 </li>
+                 <li className="flex gap-3">
+                    <span className="text-indigo-400 mt-0.5 font-black">•</span>
+                    <span><strong>Sistem Auto-Save:</strong> Jawaban Anda otomatis tersimpan setiap kali menekan tombol <strong>"Simpan & Lanjut"</strong>. Anda dapat keluar dan melanjutkan asesmen ini sewaktu-waktu.</span>
+                 </li>
+                 <li className="flex gap-3">
+                    <span className="text-indigo-400 mt-0.5 font-black">•</span>
+                    <span><strong>Rekomendasi Adaptif:</strong> Profil disabilitas yang dipilih akan disesuaikan dengan syarat fisik program studi. Prodi yang kurang direkomendasikan akan ditandai dengan warna abu-abu.</span>
+                 </li>
+              </ul>
+              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600 rounded-full mix-blend-overlay filter blur-[50px] opacity-50"></div>
+           </div>
         </div>
       </div>
     );
@@ -375,32 +430,57 @@ function App() {
     const startIdx = currentPage * ITEMS_PER_PAGE;
     const currentQuestions = questions.slice(startIdx, startIdx + ITEMS_PER_PAGE);
     const isPageComplete = currentQuestions.every((_, i) => userAnswers[startIdx + i] !== undefined);
-    const currentType = currentQuestions[0]?.category_main === 'VARK' ? 'Gaya Belajar (VARK)' : (currentQuestions[0]?.category_main?.includes('Kepribadian') ? 'Kepribadian (Big Five)' : 'Minat Karir (RIASEC)');
+    
+    let currentType = 'Bagian: Asesmen Psikologi';
+    if(currentQuestions[0]?.category_main === 'VARK') currentType = 'Bagian: Gaya Belajar (VARK)';
+    else if(currentQuestions[0]?.category_main?.includes('MBTI')) currentType = 'Bagian: Kepribadian (MBTI)';
+    else if(currentQuestions[0]?.category_main?.includes('Kepribadian')) currentType = 'Bagian: Sifat (Big Five)';
+    else if(currentQuestions[0]?.category_main) currentType = 'Bagian: Minat Karir (RIASEC)';
 
     return (
       <div className="min-h-screen bg-slate-50 font-sans pb-32">
-         <div className="bg-white sticky top-0 z-30 shadow-sm border-b border-slate-200 px-4 py-4"><div className="max-w-3xl mx-auto"><div className="flex justify-between mb-2"><span className="text-xs font-bold px-2 py-1 bg-slate-100 rounded text-slate-500 uppercase">{currentType}</span><span className="text-xs font-bold text-indigo-600">{Math.round(progress)}%</span></div><div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden"><div className="bg-indigo-600 h-full transition-all" style={{width:`${progress}%`}}></div></div></div></div>
+         <div className="bg-white sticky top-0 z-30 shadow-sm border-b border-slate-200 px-4 py-4"><div className="max-w-3xl mx-auto"><div className="flex justify-between mb-2"><span className="text-xs font-bold px-3 py-1 bg-indigo-50 rounded-full text-indigo-600 uppercase tracking-wide">{currentType}</span><span className="text-xs font-bold text-slate-400">{Math.round(progress)}% Selesai</span></div><div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div className="bg-indigo-600 h-full transition-all duration-500" style={{width:`${progress}%`}}></div></div></div></div>
          <div className="max-w-3xl mx-auto px-4 mt-8 space-y-6">{currentQuestions.map((q, idx) => (<div key={q.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100"><h3 className="font-bold text-slate-800 mb-4">{startIdx+idx+1}. {q.text_main}</h3>{renderQuestionCard(q, startIdx+idx, userAnswers[startIdx+idx])}</div>))}</div>
-         <div className="fixed bottom-0 w-full bg-white/90 backdrop-blur border-t p-4 z-40"><div className="max-w-3xl mx-auto flex justify-end"><button onClick={handleNextPage} disabled={!isPageComplete||isLoading} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold disabled:bg-slate-300">{isLoading?<Loader2 className="animate-spin"/>:'Lanjut'}</button></div></div>
+         <div className="fixed bottom-0 w-full bg-white/90 backdrop-blur border-t p-4 z-40"><div className="max-w-3xl mx-auto flex justify-end"><button onClick={handleNextPage} disabled={!isPageComplete||isLoading} className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 flex items-center gap-2 hover:bg-indigo-700 transition disabled:bg-slate-300 disabled:shadow-none">{isLoading?<Loader2 className="animate-spin"/>:<>Simpan & Lanjut <ArrowRight size={18}/></>}</button></div></div>
       </div>
     );
   }
 
   if (currentStep === 'result') {
      const scores = calculateFinalScores();
+     
+     // 1. RIASEC
      const riasecScores = { Realistic: scores.Realistic||0, Investigative: scores.Investigative||0, Artistic: scores.Artistic||0, Social: scores.Social||0, Enterprising: scores.Enterprising||0, Conventional: scores.Conventional||0 };
      const dominant = Object.keys(riasecScores).reduce((a, b) => riasecScores[a] > riasecScores[b] ? a : b);
      const content = riasecContent[dominant] || { title: dominant, description: "Belum ada deskripsi.", majors: "-", jobs: "-" };
-     const personalityScores = Object.keys(scores).filter(k => k.includes('Kepribadian_')).reduce((obj, key) => { obj[key.replace('Kepribadian_', '')] = scores[key]; return obj; }, {});
      const riasecChartData = { labels: Object.keys(riasecScores), datasets: [{ label: 'Skor', data: Object.values(riasecScores), backgroundColor: 'rgba(99, 102, 241, 0.2)', borderColor: '#6366f1', borderWidth: 2 }] };
+     
+     // 2. BIG FIVE
+     const personalityScores = Object.keys(scores).filter(k => k.includes('Kepribadian_')).reduce((obj, key) => { obj[key.replace('Kepribadian_', '')] = scores[key]; return obj; }, {});
      const personalityChartData = { labels: Object.keys(personalityScores), datasets: [{ label: 'Skor', data: Object.values(personalityScores), backgroundColor: 'rgba(236, 72, 153, 0.6)', borderColor: '#db2777', borderWidth: 0 }] };
+     
+     // 3. VARK
      const varkScores = { Visual: scores.Visual||0, Aural: scores.Aural||0, 'Read/Write': scores['Read/Write']||0, Kinesthetic: scores.Kinesthetic||0 };
      const maxVark = Math.max(...Object.values(varkScores));
      const topVarks = Object.keys(varkScores).filter(k => varkScores[k] === maxVark);
      const varkType = topVarks.length > 1 ? 'Multimodal' : topVarks[0];
-     const varkDesc = VARK_DESCRIPTIONS[varkType];
      const varkChartData = { labels: Object.keys(varkScores), datasets: [{ label: 'Skor', data: Object.values(varkScores), backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6'], borderWidth: 0 }] };
-     const { allowed, restricted, reason } = processMajors(content.majors, formData.disability);
+     
+     // 4. MBTI PERCENTAGES
+     const mbtiType = calculateMBTIType(scores);
+     const totalE = scores['MBTI_E'] || 0; const totalI = scores['MBTI_I'] || 0;
+     const pctE = totalE + totalI > 0 ? Math.round((totalE / (totalE + totalI)) * 100) : 50; const pctI = 100 - pctE;
+     
+     const totalS = scores['MBTI_S'] || 0; const totalN = scores['MBTI_N'] || 0;
+     const pctS = totalS + totalN > 0 ? Math.round((totalS / (totalS + totalN)) * 100) : 50; const pctN = 100 - pctS;
+     
+     const totalT = scores['MBTI_T'] || 0; const totalF = scores['MBTI_F'] || 0;
+     const pctT = totalT + totalF > 0 ? Math.round((totalT / (totalT + totalF)) * 100) : 50; const pctF = 100 - pctT;
+     
+     const totalJ = scores['MBTI_J'] || 0; const totalP = scores['MBTI_P'] || 0;
+     const pctJ = totalJ + totalP > 0 ? Math.round((totalJ / (totalJ + totalP)) * 100) : 50; const pctP = 100 - pctJ;
+
+     const { allMajors, restricted, reason } = processMajors(content.majors, formData.disability);
 
      const myAdvice = GAP_ANALYSIS[dominant]?.filter(rule => {
         const score = scores['Kepribadian_' + rule.trait] || 0;
@@ -410,22 +490,29 @@ function App() {
      return (
         <div className="min-h-screen bg-slate-50 py-12 px-4 font-sans">
            <div className="max-w-5xl mx-auto space-y-6">
-              <div className="bg-white rounded-3xl p-8 text-center shadow-lg border-t-8 border-indigo-600">
+              {/* HEADER HASIL */}
+              <div className="bg-white rounded-3xl p-8 text-center shadow-sm border-t-8 border-indigo-600">
                  <h1 className="text-3xl font-extrabold text-slate-800">Hasil Analisis Potensi</h1>
                  <p className="text-slate-500 mt-2">Peserta: <strong className="text-indigo-600">{formData.name}</strong></p>
-                 <div className="mt-2 text-xs font-bold px-3 py-1 bg-slate-100 rounded-full inline-block text-slate-500">Kondisi: {formData.disability}</div>
+                 <div className="mt-2 text-xs font-bold px-3 py-1 bg-slate-100 rounded-full inline-block text-slate-500">Kondisi Fisik: {formData.disability}</div>
                  {emailSent && <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full text-xs font-bold border border-green-200"><CheckCircle size={14}/> Laporan dikirim ke {formData.email}</div>}
               </div>
+
+              {/* NAVIGASI TAB */}
               <div className="flex flex-wrap justify-center gap-2 bg-white p-1.5 rounded-xl shadow-sm w-fit mx-auto no-print">
-                 <button onClick={()=>setResultTab('minat')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='minat'?'bg-indigo-600 text-white':'text-slate-500'}`}>Minat Karir</button>
-                 <button onClick={()=>setResultTab('kepribadian')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='kepribadian'?'bg-pink-600 text-white':'text-slate-500'}`}>Kepribadian</button>
-                 <button onClick={()=>setResultTab('vark')} className={`px-6 py-2 rounded-lg font-bold text-sm ${resultTab==='vark'?'bg-purple-600 text-white':'text-slate-500'}`}>Gaya Belajar</button>
+                 <button onClick={()=>setResultTab('minat')} className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${resultTab==='minat'?'bg-indigo-600 text-white':'text-slate-500 hover:bg-slate-50'}`}>Minat Karir</button>
+                 <button onClick={()=>setResultTab('kepribadian')} className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${resultTab==='kepribadian'?'bg-pink-600 text-white':'text-slate-500 hover:bg-slate-50'}`}>Sifat (Big 5)</button>
+                 <button onClick={()=>setResultTab('mbti')} className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${resultTab==='mbti'?'bg-teal-600 text-white':'text-slate-500 hover:bg-slate-50'}`}>Kepribadian (MBTI)</button>
+                 <button onClick={()=>setResultTab('vark')} className={`px-6 py-2 rounded-lg font-bold text-sm transition-all ${resultTab==='vark'?'bg-purple-600 text-white':'text-slate-500 hover:bg-slate-50'}`}>Gaya Belajar</button>
               </div>
+
+              {/* ISI TAB RIASEC */}
               {resultTab === 'minat' && (
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up">
                     <div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center"><h3 className="font-bold mb-6">Peta Minat</h3><div className="w-full max-w-xs"><Radar data={riasecChartData}/></div></div>
                     <div className="space-y-4">
                        <div className="bg-indigo-50 p-6 rounded-3xl border border-indigo-100"><div className="flex items-center gap-2 mb-2"><Sparkles size={18} className="text-indigo-600"/><span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Tipe Dominan</span></div><div className="text-3xl font-black text-indigo-900 mt-1 mb-3">{content.title}</div><p className="text-sm text-slate-700 leading-relaxed mb-4">{content.description}</p><div className="text-xs font-bold text-indigo-600 bg-white p-3 rounded-xl border border-indigo-100">💡 Analisis Singkat: Anda memiliki kecenderungan kuat dalam bidang {content.title?.split(' ')[2]}. Lingkungan kerja yang {dominant === 'Realistic' ? 'praktis' : dominant === 'Social' ? 'mendukung' : 'terstruktur'} akan membuat Anda berkembang pesat.</div></div>
+                       
                        {myAdvice.length > 0 && (
                           <div className="bg-amber-50 p-6 rounded-3xl border border-amber-100">
                              <div className="flex items-center gap-2 mb-3"><Zap className="text-amber-500" size={20}/><h4 className="font-bold text-amber-800">Rekomendasi Pengembangan Diri</h4></div>
@@ -433,15 +520,143 @@ function App() {
                              <ul className="space-y-3">{myAdvice.map((adv, i) => (<li key={i} className="flex gap-3 bg-white p-3 rounded-xl border border-amber-100"><TrendingUp className="text-amber-400 shrink-0" size={18}/><span className="text-sm text-slate-600 font-medium">{adv.msg}</span></li>))}</ul>
                           </div>
                        )}
-                       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><h4 className="font-bold text-slate-800 mb-4 flex gap-2"><GraduationCap className="text-pink-500"/> Program Studi</h4><div className="mb-4"><div className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1"><CheckCircle size={12}/> Sangat Direkomendasikan</div><div className="flex flex-wrap gap-2">{allowed.length > 0 ? allowed.map((m,i)=>(<span key={i} className="px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded-lg text-xs font-bold">{m}</span>)) : <span className="text-xs text-slate-400">Tidak ada data.</span>}</div></div>{restricted.length > 0 && (<div className="pt-4 border-t border-slate-100"><div className="text-xs font-bold text-red-500 mb-2 flex items-center gap-1"><XCircle size={12}/> Tidak Disarankan (Kondisi: {formData.disability})</div><div className="flex flex-wrap gap-2 mb-3">{restricted.map((m,i)=>(<span key={i} className="px-3 py-1 bg-slate-100 text-slate-400 border border-slate-200 rounded-lg text-xs font-bold line-through opacity-70">{m}</span>))}</div><div className="p-3 bg-red-50 rounded-xl border border-red-100 text-xs text-red-700 leading-relaxed flex gap-2"><Info size={16} className="shrink-0 mt-0.5"/><span><strong>Kenapa jurusan di atas tidak dianjurkan?</strong><br/>{reason}</span></div></div>)}</div>
+
+                       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                          <h4 className="font-bold text-slate-800 mb-2 flex gap-2"><GraduationCap className="text-pink-500"/> Semua Program Studi Terkait</h4>
+                          <p className="text-xs text-slate-400 mb-4 leading-relaxed">Program studi yang dicoret abu-abu menunjukkan ketidaksesuaian dengan kondisi disabilitas Anda (Arahkan kursor untuk melihat alasan).</p>
+                          <div className="flex flex-wrap gap-2">
+                             {allMajors.length > 0 ? allMajors.map((m, i) => {
+                                const isRestricted = restricted.includes(m);
+                                return (
+                                   <div key={i} className="group relative inline-block">
+                                      <span className={`px-3 py-1.5 rounded-lg text-xs font-bold border block transition-all ${isRestricted ? 'bg-slate-50 text-slate-400 border-slate-200 line-through decoration-red-400 decoration-2 cursor-help' : 'bg-green-50 text-green-700 border-green-100'}`}>
+                                         {m}
+                                      </span>
+                                      {isRestricted && (
+                                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-800 text-white text-[10px] rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 shadow-lg text-center leading-tight">
+                                            <strong>Tidak Disarankan:</strong><br/>{reason}
+                                         </div>
+                                      )}
+                                   </div>
+                                );
+                             }) : <span className="text-xs text-slate-400">Tidak ada data program studi.</span>}
+                          </div>
+                       </div>
                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm"><h4 className="font-bold text-slate-800 mb-3 flex gap-2"><Briefcase className="text-blue-500"/> Karir</h4><div className="flex flex-wrap gap-2">{content.jobs?.split(',').map((j,i)=><span key={i} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-100">{j.trim()}</span>)}</div></div>
                     </div>
                  </div>
               )}
-              {resultTab === 'kepribadian' && (<div className="bg-white p-8 rounded-3xl shadow-sm"><h3 className="font-bold text-center mb-6">Kepribadian (Big Five)</h3><div className="h-80"><Bar data={personalityChartData} options={{indexAxis:'y'}}/></div></div>)}
-              {resultTab === 'vark' && (<div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up"><div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center justify-center"><h3 className="font-bold text-slate-700 mb-6">Distribusi Gaya Belajar</h3><div className="w-64 h-64"><Doughnut data={varkChartData}/></div></div><div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200"><div className="flex items-center gap-2 mb-4"><BookOpen className="text-purple-600" size={24}/><h3 className="font-bold text-lg text-slate-800">Gaya Belajar Anda: <span className="text-purple-600">{varkType}</span></h3></div><p className="text-slate-600 leading-relaxed mb-6 border-l-4 border-purple-200 pl-4">{varkDesc}</p><div className="space-y-3"><h4 className="text-xs font-bold text-slate-400 uppercase">Rincian Skor:</h4>{Object.entries(varkScores).map(([k, v]) => (<div key={k} className="flex items-center justify-between text-sm"><span className="font-medium text-slate-600">{k}</span><span className="font-bold text-slate-800">{v}</span></div>))}</div></div></div>)}
+
+              {/* ISI TAB BIG FIVE */}
+              {resultTab === 'kepribadian' && (
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up">
+                    <div className="bg-white p-8 rounded-3xl shadow-sm"><h3 className="font-bold text-center mb-6">Grafik Big Five</h3><div className="h-80"><Bar data={personalityChartData} options={{indexAxis:'y', maintainAspectRatio: false}}/></div></div>
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                       <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><HelpCircle className="text-pink-500"/> Penjelasan Istilah Kepribadian</h3>
+                       <div className="space-y-3">
+                          {Object.entries(BIG_FIVE_DESC).map(([trait, desc]) => (
+                             <div key={trait} className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-pink-200 transition-all cursor-default">
+                                <h4 className="font-bold text-pink-700 text-sm mb-1">{trait}</h4>
+                                <p className="text-xs text-slate-600 leading-relaxed">{desc}</p>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                 </div>
+              )}
+
+              {/* ISI TAB MBTI (BARU SUPER DETAIL) */}
+              {resultTab === 'mbti' && (
+                 <div className="space-y-6 animate-fade-in-up">
+                    {/* Hasil Utama MBTI */}
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 text-center relative overflow-hidden">
+                       <div className="absolute top-0 right-0 w-64 h-64 bg-teal-50 rounded-full mix-blend-multiply opacity-50 -mr-20 -mt-20"></div>
+                       <div className="relative z-10">
+                         <h3 className="font-bold text-slate-500 uppercase tracking-widest text-sm mb-2">Tipe Kepribadian Anda</h3>
+                         <div className="text-6xl md:text-7xl font-black text-teal-600 mb-4 tracking-widest drop-shadow-sm">{mbtiType}</div>
+                         <h4 className="text-2xl font-bold text-teal-800 mb-4">{MBTI_DESC[mbtiType]?.title || ''}</h4>
+                         <p className="text-slate-600 max-w-2xl mx-auto leading-relaxed text-lg">{MBTI_DESC[mbtiType]?.desc || ''}</p>
+                       </div>
+                    </div>
+
+                    {/* Bar Breakdown & Penjelasan MBTI */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       {/* Grafik Bar Persentase */}
+                       <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                          <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2"><Activity className="text-teal-500"/> Rincian Dimensi (Skor)</h3>
+                          <div className="space-y-6">
+                             {/* E vs I */}
+                             <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold text-slate-500"><span>Extrovert (E): {pctE}%</span><span>Introvert (I): {pctI}%</span></div>
+                                <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden flex shadow-inner">
+                                   <div className={`h-full ${pctE >= 50 ? 'bg-teal-500' : 'bg-slate-300'}`} style={{width: `${pctE}%`}}></div>
+                                   <div className={`h-full ${pctI > 50 ? 'bg-indigo-500' : 'bg-slate-200'}`} style={{width: `${pctI}%`}}></div>
+                                </div>
+                             </div>
+                             {/* S vs N */}
+                             <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold text-slate-500"><span>Sensing (S): {pctS}%</span><span>Intuition (N): {pctN}%</span></div>
+                                <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden flex shadow-inner">
+                                   <div className={`h-full ${pctS >= 50 ? 'bg-teal-500' : 'bg-slate-300'}`} style={{width: `${pctS}%`}}></div>
+                                   <div className={`h-full ${pctN > 50 ? 'bg-indigo-500' : 'bg-slate-200'}`} style={{width: `${pctN}%`}}></div>
+                                </div>
+                             </div>
+                             {/* T vs F */}
+                             <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold text-slate-500"><span>Thinking (T): {pctT}%</span><span>Feeling (F): {pctF}%</span></div>
+                                <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden flex shadow-inner">
+                                   <div className={`h-full ${pctT >= 50 ? 'bg-teal-500' : 'bg-slate-300'}`} style={{width: `${pctT}%`}}></div>
+                                   <div className={`h-full ${pctF > 50 ? 'bg-indigo-500' : 'bg-slate-200'}`} style={{width: `${pctF}%`}}></div>
+                                </div>
+                             </div>
+                             {/* J vs P */}
+                             <div className="space-y-2">
+                                <div className="flex justify-between text-xs font-bold text-slate-500"><span>Judging (J): {pctJ}%</span><span>Perceiving (P): {pctP}%</span></div>
+                                <div className="w-full bg-slate-100 h-4 rounded-full overflow-hidden flex shadow-inner">
+                                   <div className={`h-full ${pctJ >= 50 ? 'bg-teal-500' : 'bg-slate-300'}`} style={{width: `${pctJ}%`}}></div>
+                                   <div className={`h-full ${pctP > 50 ? 'bg-indigo-500' : 'bg-slate-200'}`} style={{width: `${pctP}%`}}></div>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+
+                       {/* Penjelasan Istilah MBTI */}
+                       <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                          <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><HelpCircle className="text-teal-500"/> Makna Dimensi MBTI</h3>
+                          <div className="space-y-3">
+                             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <h4 className="font-bold text-teal-700 text-sm mb-1">E vs I (Fokus Energi)</h4>
+                                <p className="text-xs text-slate-600"><strong>Extrovert:</strong> Mendapat energi dari luar (sosial & aktivitas).<br/><strong>Introvert:</strong> Mendapat energi dari dalam diri (menyendiri & refleksi).</p>
+                             </div>
+                             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <h4 className="font-bold text-teal-700 text-sm mb-1">S vs N (Proses Informasi)</h4>
+                                <p className="text-xs text-slate-600"><strong>Sensing:</strong> Fokus pada fakta, detail, dan kenyataan praktis.<br/><strong>Intuition:</strong> Fokus pada ide abstrak, pola, dan masa depan.</p>
+                             </div>
+                             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <h4 className="font-bold text-teal-700 text-sm mb-1">T vs F (Pengambilan Keputusan)</h4>
+                                <p className="text-xs text-slate-600"><strong>Thinking:</strong> Menggunakan logika objektif dan konsistensi.<br/><strong>Feeling:</strong> Menggunakan nilai pribadi, empati, dan harmoni sosial.</p>
+                             </div>
+                             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <h4 className="font-bold text-teal-700 text-sm mb-1">J vs P (Gaya Hidup)</h4>
+                                <p className="text-xs text-slate-600"><strong>Judging:</strong> Menyukai struktur, rencana, dan jadwal yang teratur.<br/><strong>Perceiving:</strong> Menyukai fleksibilitas, spontanitas, dan opsi terbuka.</p>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+              )}
+
+              {/* ISI TAB VARK */}
+              {resultTab === 'vark' && (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
+                    <div className="bg-white p-8 rounded-3xl shadow-sm flex flex-col items-center justify-center"><h3 className="font-bold text-slate-700 mb-6">Distribusi Gaya Belajar</h3><div className="w-64 h-64"><Doughnut data={varkChartData}/></div></div>
+                    <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200"><div className="flex items-center gap-2 mb-4"><BookOpen className="text-purple-600" size={24}/><h3 className="font-bold text-lg text-slate-800">Gaya Belajar Anda: <span className="text-purple-600">{varkType}</span></h3></div><p className="text-slate-600 leading-relaxed mb-6 border-l-4 border-purple-200 pl-4">{VARK_DESCRIPTIONS[varkType]}</p><div className="space-y-3"><h4 className="text-xs font-bold text-slate-400 uppercase">Rincian Skor:</h4>{Object.entries(varkScores).map(([k, v]) => (<div key={k} className="flex items-center justify-between text-sm"><span className="font-medium text-slate-600">{k}</span><span className="font-bold text-slate-800 bg-white px-3 py-1 rounded shadow-sm">{v}</span></div>))}</div></div>
+                 </div>
+              )}
+              
+              {/* RATING & BUTTONS */}
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm mt-6 no-print"><div className="text-center"><h3 className="font-bold text-slate-800 mb-2">Seberapa akurat hasil ini?</h3><p className="text-sm text-slate-500 mb-4">Bantu kami meningkatkan kualitas sistem.</p>{!ratingSubmitted ? (<div className="space-y-4"><div className="flex justify-center gap-2">{[1, 2, 3, 4, 5].map((star) => (<button key={star} onClick={() => setRating(star)} className={`transition-all transform hover:scale-110 ${rating >= star ? 'text-amber-400' : 'text-slate-200'}`}><Star size={32} fill={rating >= star ? "currentColor" : "none"} strokeWidth={rating >= star ? 0 : 2}/></button>))}</div>{rating > 0 && (<div className="animate-fade-in-up"><textarea className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Masukan tambahan..." rows="2" value={feedback} onChange={(e) => setFeedback(e.target.value)}/><button onClick={submitRating} className="mt-2 px-6 py-2 bg-slate-800 text-white text-sm font-bold rounded-lg hover:bg-slate-900 transition w-full md:w-auto">Kirim</button></div>)}</div>) : (<div className="p-4 bg-green-50 text-green-700 rounded-xl border border-green-100 flex items-center justify-center gap-2 font-bold animate-pulse"><CheckCircle size={20}/> Masukan tersimpan.</div>)}</div></div>
-              <div className="text-center pt-8 pb-20 flex justify-center gap-4 no-print"><button onClick={()=>window.print()} className="px-6 py-3 bg-white border-2 border-indigo-100 text-indigo-700 rounded-xl font-bold hover:bg-indigo-50 flex items-center gap-2"><Download size={18}/> Simpan PDF</button><button onClick={()=>window.location.reload()} className="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 flex items-center gap-2"><RefreshCcw size={18}/> Selesai</button></div>
+              <div className="text-center pt-8 pb-20 flex justify-center gap-4 no-print"><button onClick={()=>window.print()} className="px-6 py-3 bg-white border-2 border-indigo-100 text-indigo-700 rounded-xl font-bold hover:bg-indigo-50 flex items-center gap-2"><Download size={18}/> Cetak PDF</button><button onClick={()=>window.location.reload()} className="px-6 py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 flex items-center gap-2"><RefreshCcw size={18}/> Selesai</button></div>
            </div>
         </div>
      );
