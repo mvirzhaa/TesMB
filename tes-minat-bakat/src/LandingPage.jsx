@@ -13,10 +13,7 @@ const LandingPage = ({ onStart }) => {
       <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
         <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2 font-extrabold text-2xl text-indigo-600">
-            <BrainCircuit size={32} />
-            <span>PsikoTest<span className="text-slate-800">.id</span></span>
-          </div>
+
 
           {/* Menu Desktop */}
           <div className="hidden md:flex items-center gap-8 font-medium text-sm text-slate-500">
